@@ -1,0 +1,1 @@
+D:\Dev\repos\omnisql\target\debug\omnisql.exe: D:\Dev\repos\omnisql\src\cli\mod.rs D:\Dev\repos\omnisql\src\lexer\mod.rs D:\Dev\repos\omnisql\src\lib.rs D:\Dev\repos\omnisql\src\main.rs D:\Dev\repos\omnisql\src\parser\mod.rs D:\Dev\repos\omnisql\src\semantic\mod.rs
