@@ -9,16 +9,26 @@ pub enum Token {
     From,
     #[token("WHERE", ignore(ascii_case))]
     Where,
+    #[token("JOIN", ignore(ascii_case))]
+    Join,
+    #[token("ON", ignore(ascii_case))]
+    On,
+    #[token("AND", ignore(ascii_case))]
+    And,
+    #[token("OR", ignore(ascii_case))]
+    Or,
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
     Identifier(String),
-    #[regex("[0-9]+")]
-    Number,
+    #[regex("[0-9]+", |lex| lex.slice().to_string())]
+    Number(String),
     #[token("*")]
     Asterisk,
     #[token(",")]
     Comma,
+    #[token(".")]
+    Dot,
     #[token(";")]
     Semicolon,
-    #[regex("[=<>!]+")]
-    Operator,
+    #[regex("[=<>!]+", |lex| lex.slice().to_string())]
+    Operator(String),
 }

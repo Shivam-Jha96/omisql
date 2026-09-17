@@ -27,4 +27,17 @@ This document tracks the progress of the OmniSQL project throughout its developm
 - **Pipeline Integration**: Connected the Lexer, Parser, and Semantic Engine sequentially in `main.rs`. Updated the Lexer and Parser to dynamically extract and store `Token::Identifier(String)` instances.
 - **E2E Validation**: Validated the full pipeline by parsing `sample.sql` and confirming that the extracted table columns successfully pass semantic validation against the mock schema.
 
-*Status: MVP Pipeline Complete. Ready for next phase (e.g., Execution Engine or WHERE clause support).*
+## [2026-09-17] - Phase 1 Completion (AST & Style Engine)
+- **AST Expansion**: Rewrote the parser to support `WHERE` clauses (via binary expressions) and `JOIN` clauses.
+- **Style Engine**: Implemented a regex-based pre-processing style engine in `src/style/` that auto-fixes casing and removes trailing commas.
+- **Auto-Fix Logging**: Configured `main.rs` to write applied style fixes directly to `omnisql_fixes.log`.
+
+*Status: Phase 1 (Foundation) Complete. Moving towards Phase 2 (Real Schema Ingestion) and Phase 3 (Virtual Execution Engine).*
+
+## [2026-09-17] - Phase 2 Completion (Schema Ingestion & Semantic Rules)
+- **Schema Ingestion**: Replaced mock schema with `load_from_ddl` which parses raw `CREATE TABLE` DDL queries to extract tables and columns.
+- **AST Updates**: Updated Lexer and Parser to support compound identifiers (`table.column`) by adding `Token::Dot`.
+- **Advanced Semantic Rules**: Implemented `AmbiguousColumn` logic to flag errors when unqualified columns exist in multiple joined tables.
+- **Validation**: Verified against `test_dbs/sample_db1/1. pagila-schema.sql` via `--schema` argument.
+
+*Status: Phase 2 Complete. Ready for Phase 3 (Virtual Execution Engine).*
