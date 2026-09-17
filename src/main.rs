@@ -104,11 +104,35 @@ fn main() -> Result<()> {
                 
                 if semantic_errors == 0 {
                     println!("Semantic validation passed.");
+                    
+                    // 4. Virtual Execution Engine (Dry-Run)
+                    let exec_issues = omnisql::exec::rules::check_execution_rules(&ast);
+                    let mut exec_errors = 0;
+                    let mut exec_warnings = 0;
+                    
+                    for issue in &exec_issues {
+                        match issue {
+                            omnisql::exec::rules::ExecIssue::Error(msg) => {
+                                println!("Exec Error: {}", msg);
+                                exec_errors += 1;
+                            }
+                            omnisql::exec::rules::ExecIssue::Warning(msg) => {
+                                println!("Exec Warning: {}", msg);
+                                exec_warnings += 1;
+                            }
+                        }
+                    }
+                    
+                    if exec_errors == 0 && exec_warnings == 0 {
+                        println!("Dry-run execution passed without issues.");
+                    } else {
+                        println!("Dry-run completed with {} errors and {} warnings.", exec_errors, exec_warnings);
+                    }
                 } else {
                     println!("Semantic validation failed with {} errors.", semantic_errors);
                 }
             } else {
-                println!("Warning: No --schema provided. Skipping semantic validation.");
+                println!("Warning: No --schema provided. Skipping semantic validation and dry-run execution.");
                 use std::io::Write;
                 if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(log_path) {
                     let _ = writeln!(file, "WARNING: Semantic engine skipped due to missing schema.");

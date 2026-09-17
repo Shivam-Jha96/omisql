@@ -70,8 +70,8 @@ To achieve high performance, safety, and cross-platform distribution, we will us
 - Implement a semantic resolver that traverses the AST and binds column references to the loaded schema.
 - Create core semantic rules: `InvalidColumnReference`, `TypeMismatchInJoin`, `AmbiguousColumn`.
 
-### ⚪ Phase 3: Virtual Execution Engine (Dry-Run Analysis)
-- Build an in-memory execution module that virtually evaluates the AST against mock schema data.
+### ✅ Phase 3: Virtual Execution Engine (Dry-Run Analysis)
+- Build an in-memory execution module (`src/exec/mod.rs`) that virtually evaluates the AST.
 - Implement expression evaluation (constant folding, `WHERE` clause logical checks).
 - Enable static "dry-run" capabilities to catch runtime logic errors (e.g., divide by zero, impossible filters) before execution.
 
@@ -183,3 +183,37 @@ To turn Phase 2 green, we need to move away from our hardcoded mock schema and b
 - Create a `schema.json` file with multiple tables (`users`, `orders`).
 - Create `test_queries.sql` with a `JOIN` that contains an ambiguous column reference.
 - Verify the linter catches the ambiguous column and correctly validates columns across multiple joined tables.
+
+---
+
+## 10. Current Objective: Phase 3 (Virtual Execution Engine)
+
+To turn Phase 3 green, we need to build an in-memory execution module that virtually evaluates the AST and catches runtime errors via "dry-run" analysis.
+
+### User Review Required
+> [!IMPORTANT]
+> 1. **Dry Run Errors**: Should we treat "Divide by Zero" as an error (fail CI) or a warning? (Recommendation: Error).
+> 2. **Impossible Filters**: `WHERE 1 = 0` is sometimes used intentionally to query table schemas without returning data. Should we flag it as an error or warning? (Recommendation: Warning).
+
+### Proposed Changes
+
+#### 1. AST Updates for Math Operators (`src/lexer/mod.rs` & `src/parser/mod.rs`)
+- **[MODIFY] Lexer**: Update operator regex to explicitly support `+`, `-`, `*`, `/`. We must ensure it plays well with the `Token::Asterisk`.
+- **[MODIFY] Parser**: Extend `parse_expression` to handle basic arithmetic operations and correctly parse them into `Expression::BinaryOp`.
+
+#### 2. Virtual Execution Engine (`src/exec/mod.rs`)
+- **[NEW] `src/exec/mod.rs`**: Build the execution engine to statically evaluate an `Expression`.
+- **[NEW] `src/exec/eval.rs`**: Implement `evaluate_expression(expr)` that resolves `BinaryOp` nodes to constant values when possible (constant folding).
+- **[NEW] `src/exec/rules.rs`**: Implement rules:
+  - `DivideByZeroError`: Triggered if a division by literal `0` is detected in an expression.
+  - `ImpossibleFilterWarning`: Triggered if a `WHERE` clause statically evaluates to `false`.
+
+#### 3. CLI Integration (`src/main.rs`)
+- **[MODIFY] `src/main.rs`**: Plug the new execution engine into the pipeline after Semantic Validation.
+- **[MODIFY] `src/main.rs`**: Log dry-run errors/warnings to the console output.
+
+### Verification Plan
+- Write unit tests for the execution module evaluating `1 + 2`, `x / 0`, and `WHERE 1 = 0`.
+- Update `test_queries.sql` with queries demonstrating a divide-by-zero error and an impossible filter.
+- Run the CLI and verify the new rules fire correctly.
+

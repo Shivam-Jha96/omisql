@@ -154,6 +154,7 @@ where
             iter.next(); // consume op
             op_str
         }
+        Some(&Token::Asterisk) => { iter.next(); "*".to_string() }
         Some(&Token::And) => { iter.next(); "AND".to_string() }
         Some(&Token::Or) => { iter.next(); "OR".to_string() }
         _ => return Ok(left), // Single token expression
