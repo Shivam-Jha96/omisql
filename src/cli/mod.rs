@@ -14,5 +14,9 @@ pub enum Commands {
     Lint {
         /// The SQL file to lint
         path: String,
+        
+        /// Optional path to a DDL schema file
+        #[arg(short, long)]
+        schema: Option<String>,
     },
 }

@@ -1,3 +1,3 @@
-SELECT user_id, email, age 
-FROM users 
-WHERE age > 18;
+select user_id, email, age, 
+from users 
+where age > 18;

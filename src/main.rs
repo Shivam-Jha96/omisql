@@ -9,14 +9,26 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Lint { path } => {
+        Commands::Lint { path, schema } => {
             println!("Processing path: {}", path);
             
             // Read file content
             let content = fs::read_to_string(path)?;
             
+            // 0. Style Engine
+            let mut style_engine = omnisql::style::StyleEngine::new();
+            style_engine.add_rule(Box::new(omnisql::style::casing::KeywordCasingRule));
+            style_engine.add_rule(Box::new(omnisql::style::commas::TrailingCommaRule));
+            
+            let log_path = "omnisql_fixes.log";
+            let fixed_content = style_engine.format_and_log(&content, log_path);
+            
+            if fixed_content != content {
+                println!("Style auto-fixes applied. Check {} for details.", log_path);
+            }
+            
             // 1. Lexer
-            let mut lex = Token::lexer(&content);
+            let mut lex = Token::lexer(&fixed_content);
             let mut tokens = Vec::new();
             
             while let Some(res) = lex.next() {
@@ -38,30 +50,69 @@ fn main() -> Result<()> {
                     return Ok(());
                 }
             };
-            println!("Parsing successful: {:#?}", ast);
+            println!("Parsing successful.");
             
             // 3. Semantic Engine
-            let mut registry = omnisql::semantic::SchemaRegistry::new();
-            registry.load_mock_schema();
-            
-            let mut semantic_errors = 0;
-            if ast.columns.len() == 1 && ast.columns[0] == "*" {
-                 println!("Semantic OK: Selecting all columns from '{}'", ast.table);
-            } else {
+            if let Some(schema_path) = schema {
+                let ddl = match fs::read_to_string(schema_path) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        println!("Failed to read schema file: {}", e);
+                        return Ok(());
+                    }
+                };
+                
+                let mut registry = omnisql::semantic::SchemaRegistry::new();
+                registry.load_from_ddl(&ddl);
+                
+                let mut semantic_errors = 0;
+                
+                let mut active_tables = vec![ast.table.clone()];
+                for join in &ast.joins {
+                    active_tables.push(join.table.clone());
+                }
+                
                 for col in &ast.columns {
-                    if registry.validate_column(&ast.table, col) {
-                        println!("Semantic OK: Column '{}' found in table '{}'", col, ast.table);
+                    if col.name == "*" {
+                        continue;
+                    }
+                    
+                    if let Some(ref t) = col.table {
+                        if !active_tables.contains(t) {
+                            println!("Semantic Error: Table '{}' is not part of the query.", t);
+                            semantic_errors += 1;
+                        } else if !registry.validate_column(t, &col.name) {
+                            println!("Semantic Error: Column '{}.{}' does not exist in schema.", t, col.name);
+                            semantic_errors += 1;
+                        } else {
+                            println!("Semantic OK: '{}.{}' validated.", t, col.name);
+                        }
                     } else {
-                        println!("Semantic Error: Column '{}' not found in table '{}'", col, ast.table);
-                        semantic_errors += 1;
+                        // Unqualified column
+                        let matches = registry.find_tables_with_column(&col.name, &active_tables);
+                        if matches.is_empty() {
+                            println!("Semantic Error: Column '{}' not found in any queried tables ({:?}).", col.name, active_tables);
+                            semantic_errors += 1;
+                        } else if matches.len() > 1 {
+                            println!("Semantic Error: Ambiguous column '{}'. Found in tables: {:?}", col.name, matches);
+                            semantic_errors += 1;
+                        } else {
+                            println!("Semantic OK: '{}' validated (belongs to '{}').", col.name, matches[0]);
+                        }
                     }
                 }
-            }
-            
-            if semantic_errors == 0 {
-                println!("Semantic validation passed.");
+                
+                if semantic_errors == 0 {
+                    println!("Semantic validation passed.");
+                } else {
+                    println!("Semantic validation failed with {} errors.", semantic_errors);
+                }
             } else {
-                println!("Semantic validation failed with {} errors.", semantic_errors);
+                println!("Warning: No --schema provided. Skipping semantic validation.");
+                use std::io::Write;
+                if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(log_path) {
+                    let _ = writeln!(file, "WARNING: Semantic engine skipped due to missing schema.");
+                }
             }
         }
     }
