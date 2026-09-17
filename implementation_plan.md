@@ -217,3 +217,44 @@ To turn Phase 3 green, we need to build an in-memory execution module that virtu
 - Update `test_queries.sql` with queries demonstrating a divide-by-zero error and an impossible filter.
 - Run the CLI and verify the new rules fire correctly.
 
+
+---
+
+## 11. Current Objective: Phase 4 (Security & Cost Analysis) [COMPLETED]
+
+This phase extended the OmniSQL Linter beyond structural and semantic validation to catch security vulnerabilities and costly cloud-warehouse queries.
+
+### Implemented Changes
+
+#### 1. AST and Parser Enhancements
+- **[MODIFY] src/lexer/mod.rs**: Added tokens for DROP, ALTER, GRANT, TABLE, ALL, PRIVILEGES.
+- **[MODIFY] src/parser/mod.rs**: Added DropStatement, AlterStatement, and GrantStatement to the AST and replaced parse_select with a generic parse_statement entry point.
+
+#### 2. Metadata Ingestion
+- **[MODIFY] src/semantic/mod.rs**: Updated SchemaRegistry to use a TableDef struct that tracks standard columns, pii_columns, and partition_column. load_from_ddl now parses COMMENT '@PII' and COMMENT '@PARTITION' to populate these fields.
+
+#### 3. Security Rules
+- **[NEW] src/semantic/security.rs**: 
+  - UnmaskedPIISelect: Flags an error if a PII column is selected.
+  - DangerousMigration: Flags DROP TABLE (error) and ALTER TABLE (warning).
+  - UnsafeGrant: Flags GRANT ALL PRIVILEGES as overly permissive.
+
+#### 4. Cost Analysis Rules
+- **[NEW] src/semantic/cost.rs**:
+  - MissingPartitionFilter: Enforces that queries against partitioned tables filter on the partition column.
+  - CartesianJoinWarning: Warns if a JOIN ON condition statically evaluates to a truthy constant (e.g., ON 1=1), potentially causing massive cross joins.
+
+---
+
+## 12. Current Objective: Phase 5 (Extensibility & Packaging)
+
+To turn Phase 5 green, we will introduce WebAssembly (WASM) plugins for custom rules and prepare the project for cross-platform distribution.
+
+### Proposed Changes
+
+#### 1. Extensibility (WASM)
+- **[NEW] src/plugin/mod.rs**: Integrate wasmtime to load .wasm plugin files.
+- **[NEW] ABI Definition**: Define how the Rust core passes the AST to WASM guests, and how guests return LintIssue structs.
+
+#### 2. Packaging
+- **[NEW] .github/workflows/release.yml**: Set up automated cross-compilation for Windows, macOS, and Linux using GitHub Actions.

@@ -31,6 +31,76 @@ pub struct SelectStatement {
     pub where_clause: Option<Expression>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct DropStatement {
+    pub table: String,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AlterStatement {
+    pub table: String,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct GrantStatement {
+    pub all_privileges: bool,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Statement {
+    Select(SelectStatement),
+    Drop(DropStatement),
+    Alter(AlterStatement),
+    Grant(GrantStatement),
+}
+
+pub fn parse_statement(tokens: &[Token]) -> Result<Statement, String> {
+    if tokens.is_empty() {
+        return Err("Empty statement".to_string());
+    }
+    match tokens[0] {
+        Token::Select => Ok(Statement::Select(parse_select(tokens)?)),
+        Token::Drop => Ok(Statement::Drop(parse_drop(tokens)?)),
+        Token::Alter => Ok(Statement::Alter(parse_alter(tokens)?)),
+        Token::Grant => Ok(Statement::Grant(parse_grant(tokens)?)),
+        _ => Err("Unsupported statement type".to_string()),
+    }
+}
+
+fn parse_drop(tokens: &[Token]) -> Result<DropStatement, String> {
+    let mut iter = tokens.iter().peekable();
+    iter.next(); // Consume DROP
+    if let Some(Token::Table) = iter.next() {
+        if let Some(Token::Identifier(name)) = iter.next() {
+            return Ok(DropStatement { table: name.clone() });
+        }
+    }
+    Err("Invalid DROP statement".to_string())
+}
+
+fn parse_alter(tokens: &[Token]) -> Result<AlterStatement, String> {
+    let mut iter = tokens.iter().peekable();
+    iter.next(); // Consume ALTER
+    if let Some(Token::Table) = iter.next() {
+        if let Some(Token::Identifier(name)) = iter.next() {
+            return Ok(AlterStatement { table: name.clone() });
+        }
+    }
+    Err("Invalid ALTER statement".to_string())
+}
+
+fn parse_grant(tokens: &[Token]) -> Result<GrantStatement, String> {
+    let mut iter = tokens.iter().peekable();
+    iter.next(); // Consume GRANT
+    let mut all_privileges = false;
+    if let Some(Token::All) = iter.next() {
+        if let Some(Token::Privileges) = iter.peek() {
+            all_privileges = true;
+        }
+    }
+    Ok(GrantStatement { all_privileges })
+}
+
 pub fn parse_select(tokens: &[Token]) -> Result<SelectStatement, String> {
     let mut columns = Vec::new();
     let table;

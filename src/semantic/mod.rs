@@ -1,7 +1,17 @@
+pub mod security;
+pub mod cost;
+
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
+pub struct TableDef {
+    pub columns: Vec<String>,
+    pub pii_columns: Vec<String>,
+    pub partition_column: Option<String>,
+}
+
 pub struct SchemaRegistry {
-    tables: HashMap<String, Vec<String>>,
+    pub tables: HashMap<String, TableDef>,
 }
 
 impl SchemaRegistry {
@@ -14,7 +24,11 @@ impl SchemaRegistry {
     pub fn load_mock_schema(&mut self) {
         self.tables.insert(
             "users".to_string(),
-            vec!["user_id".to_string(), "email".to_string(), "age".to_string()],
+            TableDef {
+                columns: vec!["user_id".to_string(), "email".to_string(), "age".to_string()],
+                pii_columns: vec![],
+                partition_column: None,
+            },
         );
     }
     
@@ -34,7 +48,11 @@ impl SchemaRegistry {
                         name = parts[3].trim_end_matches('(').to_string();
                     }
                     current_table = Some(name.clone());
-                    self.tables.insert(name, Vec::new());
+                    self.tables.insert(name, TableDef {
+                        columns: Vec::new(),
+                        pii_columns: Vec::new(),
+                        partition_column: None,
+                    });
                 }
             } else if line.starts_with(");") || line == ")" {
                 current_table = None;
@@ -44,8 +62,16 @@ impl SchemaRegistry {
                 }
                 let first_word = line.split_whitespace().next().unwrap_or("").trim_end_matches(',');
                 if !first_word.is_empty() && !first_word.starts_with('(') {
-                    if let Some(cols) = self.tables.get_mut(table_name) {
-                        cols.push(first_word.to_string());
+                    if let Some(table_def) = self.tables.get_mut(table_name) {
+                        let col_name = first_word.to_string();
+                        table_def.columns.push(col_name.clone());
+                        
+                        if line.contains("COMMENT '@PII'") || line.contains("COMMENT '@pii'") {
+                            table_def.pii_columns.push(col_name.clone());
+                        }
+                        if line.contains("COMMENT '@PARTITION'") || line.contains("COMMENT '@partition'") {
+                            table_def.partition_column = Some(col_name);
+                        }
                     }
                 }
             }
@@ -53,8 +79,8 @@ impl SchemaRegistry {
     }
 
     pub fn validate_column(&self, table: &str, column: &str) -> bool {
-        if let Some(columns) = self.tables.get(table) {
-            columns.iter().any(|c| c == column)
+        if let Some(table_def) = self.tables.get(table) {
+            table_def.columns.iter().any(|c| c == column)
         } else {
             false
         }

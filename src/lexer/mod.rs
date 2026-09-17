@@ -17,6 +17,18 @@ pub enum Token {
     And,
     #[token("OR", ignore(ascii_case))]
     Or,
+    #[token("DROP", ignore(ascii_case))]
+    Drop,
+    #[token("ALTER", ignore(ascii_case))]
+    Alter,
+    #[token("GRANT", ignore(ascii_case))]
+    Grant,
+    #[token("TABLE", ignore(ascii_case))]
+    Table,
+    #[token("ALL", ignore(ascii_case))]
+    All,
+    #[token("PRIVILEGES", ignore(ascii_case))]
+    Privileges,
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
     Identifier(String),
     #[regex("[0-9]+", |lex| lex.slice().to_string())]
