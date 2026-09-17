@@ -41,3 +41,12 @@ This document tracks the progress of the OmniSQL project throughout its developm
 - **Validation**: Verified against `test_dbs/sample_db1/1. pagila-schema.sql` via `--schema` argument.
 
 *Status: Phase 2 Complete. Ready for Phase 3 (Virtual Execution Engine).*
+
+## [2026-09-17] - Phase 3 Completion (Virtual Execution Engine)
+- **Math Operators**: Extended Lexer and Parser to support arithmetic operators (+, -, *, /).
+- **Constant Folding**: Implemented evaluate_expression in src/exec/eval.rs to statically resolve simple mathematical and logical binary operations.
+- **Dry-Run Analysis**: Added rules in src/exec/rules.rs to catch Divide by Zero (as a hard error) and Impossible Filter (e.g., WHERE 0 = 1 as a warning).
+- **Validation**: CLI now performs Virtual Execution Engine checks after semantic validation. Wrote unit tests and verified manually on test queries.
+
+*Status: Phase 3 Complete. Ready for Phase 4 (Security & Cost Analysis).*
+

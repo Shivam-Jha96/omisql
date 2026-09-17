@@ -1,7 +1,7 @@
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq)]
-#[logos(skip r"[ \t\n\f]+")] // Ignore whitespace
+#[logos(skip r"[ \t\n\r\f]+")] // Ignore whitespace
 pub enum Token {
     #[token("SELECT", ignore(ascii_case))]
     Select,
@@ -29,6 +29,6 @@ pub enum Token {
     Dot,
     #[token(";")]
     Semicolon,
-    #[regex("[=<>!]+", |lex| lex.slice().to_string())]
+    #[regex("[=<>!+\\-/]+", |lex| lex.slice().to_string())]
     Operator(String),
 }
