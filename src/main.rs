@@ -43,8 +43,8 @@ fn main() -> Result<()> {
             println!("Lexing successful: {} tokens", tokens.len());
             
             // 2. Parser
-            let ast = match omnisql::parser::parse_select(&tokens) {
-                Ok(ast) => ast,
+            let stmt = match omnisql::parser::parse_statement(&tokens) {
+                Ok(stmt) => stmt,
                 Err(e) => {
                     println!("Parse Error: {}", e);
                     return Ok(());
@@ -67,37 +67,39 @@ fn main() -> Result<()> {
                 
                 let mut semantic_errors = 0;
                 
-                let mut active_tables = vec![ast.table.clone()];
-                for join in &ast.joins {
-                    active_tables.push(join.table.clone());
-                }
-                
-                for col in &ast.columns {
-                    if col.name == "*" {
-                        continue;
+                if let omnisql::parser::Statement::Select(ref ast) = stmt {
+                    let mut active_tables = vec![ast.table.clone()];
+                    for join in &ast.joins {
+                        active_tables.push(join.table.clone());
                     }
                     
-                    if let Some(ref t) = col.table {
-                        if !active_tables.contains(t) {
-                            println!("Semantic Error: Table '{}' is not part of the query.", t);
-                            semantic_errors += 1;
-                        } else if !registry.validate_column(t, &col.name) {
-                            println!("Semantic Error: Column '{}.{}' does not exist in schema.", t, col.name);
-                            semantic_errors += 1;
-                        } else {
-                            println!("Semantic OK: '{}.{}' validated.", t, col.name);
+                    for col in &ast.columns {
+                        if col.name == "*" {
+                            continue;
                         }
-                    } else {
-                        // Unqualified column
-                        let matches = registry.find_tables_with_column(&col.name, &active_tables);
-                        if matches.is_empty() {
-                            println!("Semantic Error: Column '{}' not found in any queried tables ({:?}).", col.name, active_tables);
-                            semantic_errors += 1;
-                        } else if matches.len() > 1 {
-                            println!("Semantic Error: Ambiguous column '{}'. Found in tables: {:?}", col.name, matches);
-                            semantic_errors += 1;
+                        
+                        if let Some(ref t) = col.table {
+                            if !active_tables.contains(t) {
+                                println!("Semantic Error: Table '{}' is not part of the query.", t);
+                                semantic_errors += 1;
+                            } else if !registry.validate_column(t, &col.name) {
+                                println!("Semantic Error: Column '{}.{}' does not exist in schema.", t, col.name);
+                                semantic_errors += 1;
+                            } else {
+                                println!("Semantic OK: '{}.{}' validated.", t, col.name);
+                            }
                         } else {
-                            println!("Semantic OK: '{}' validated (belongs to '{}').", col.name, matches[0]);
+                            // Unqualified column
+                            let matches = registry.find_tables_with_column(&col.name, &active_tables);
+                            if matches.is_empty() {
+                                println!("Semantic Error: Column '{}' not found in any queried tables ({:?}).", col.name, active_tables);
+                                semantic_errors += 1;
+                            } else if matches.len() > 1 {
+                                println!("Semantic Error: Ambiguous column '{}'. Found in tables: {:?}", col.name, matches);
+                                semantic_errors += 1;
+                            } else {
+                                println!("Semantic OK: '{}' validated (belongs to '{}').", col.name, matches[0]);
+                            }
                         }
                     }
                 }
@@ -105,28 +107,58 @@ fn main() -> Result<()> {
                 if semantic_errors == 0 {
                     println!("Semantic validation passed.");
                     
-                    // 4. Virtual Execution Engine (Dry-Run)
-                    let exec_issues = omnisql::exec::rules::check_execution_rules(&ast);
-                    let mut exec_errors = 0;
-                    let mut exec_warnings = 0;
+                    // 4. Rule Engine (Exec, Security, Cost)
+                    let mut all_errors = 0;
+                    let mut all_warnings = 0;
                     
-                    for issue in &exec_issues {
-                        match issue {
-                            omnisql::exec::rules::ExecIssue::Error(msg) => {
-                                println!("Exec Error: {}", msg);
-                                exec_errors += 1;
+                    if let omnisql::parser::Statement::Select(ref ast) = stmt {
+                        let exec_issues = omnisql::exec::rules::check_execution_rules(ast);
+                        for issue in &exec_issues {
+                            match issue {
+                                omnisql::exec::rules::ExecIssue::Error(msg) => {
+                                    println!("Exec Error: {}", msg);
+                                    all_errors += 1;
+                                }
+                                omnisql::exec::rules::ExecIssue::Warning(msg) => {
+                                    println!("Exec Warning: {}", msg);
+                                    all_warnings += 1;
+                                }
                             }
-                            omnisql::exec::rules::ExecIssue::Warning(msg) => {
-                                println!("Exec Warning: {}", msg);
-                                exec_warnings += 1;
+                        }
+                    }
+
+                    let sec_issues = omnisql::semantic::security::check_security_rules(&stmt, &registry);
+                    for issue in &sec_issues {
+                        match issue {
+                            omnisql::semantic::security::SecurityIssue::Error(msg) => {
+                                println!("Security Error: {}", msg);
+                                all_errors += 1;
+                            }
+                            omnisql::semantic::security::SecurityIssue::Warning(msg) => {
+                                println!("Security Warning: {}", msg);
+                                all_warnings += 1;
+                            }
+                        }
+                    }
+
+                    let cost_issues = omnisql::semantic::cost::check_cost_rules(&stmt, &registry);
+                    for issue in &cost_issues {
+                        match issue {
+                            omnisql::semantic::cost::CostIssue::Error(msg) => {
+                                println!("Cost Error: {}", msg);
+                                all_errors += 1;
+                            }
+                            omnisql::semantic::cost::CostIssue::Warning(msg) => {
+                                println!("Cost Warning: {}", msg);
+                                all_warnings += 1;
                             }
                         }
                     }
                     
-                    if exec_errors == 0 && exec_warnings == 0 {
+                    if all_errors == 0 && all_warnings == 0 {
                         println!("Dry-run execution passed without issues.");
                     } else {
-                        println!("Dry-run completed with {} errors and {} warnings.", exec_errors, exec_warnings);
+                        println!("Dry-run completed with {} errors and {} warnings.", all_errors, all_warnings);
                     }
                 } else {
                     println!("Semantic validation failed with {} errors.", semantic_errors);

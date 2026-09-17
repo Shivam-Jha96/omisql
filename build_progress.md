@@ -50,3 +50,13 @@ This document tracks the progress of the OmniSQL project throughout its developm
 
 *Status: Phase 3 Complete. Ready for Phase 4 (Security & Cost Analysis).*
 
+
+## [2026-09-17] - Phase 4 Completion (Security & Cost Analysis)
+- **Lexer & Parser Enhancements**: Added support for non-SELECT statements (DROP, ALTER, GRANT) into the Lexer and Statement enum.
+- **Metadata Ingestion**: Updated SchemaRegistry to parse DDL comments (@PII and @PARTITION) to assign security/cost metadata to columns.
+- **Security Rules**: Implemented UnmaskedPIISelect, DangerousMigration, and UnsafeGrant within the semantic::security module.
+- **Cost Rules**: Implemented MissingPartitionFilter and CartesianJoinWarning (leveraging Virtual Execution) within the semantic::cost module.
+- **Validation**: Hooked all rules up to the CLI and manually verified against test SQL covering PII leakage, drop operations, cartesian joins, and missing partition filters.
+
+*Status: Phase 4 Complete. Ready for Phase 5 (Extensibility & Packaging).*
+
