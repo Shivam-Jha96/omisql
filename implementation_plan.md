@@ -124,103 +124,74 @@ The financial cost to develop and launch this MVP is **practically $0**, aside f
 
 ---
 
-## 8. Current Objective: Finishing Phase 1
+## 8. Current Objective: Phase 1 (Core Parsing) [COMPLETED]
 
-To completely finish Phase 1 and turn the indicator green, we need to flesh out the AST and implement the foundational Style Engine. 
+This phase finalized the core parsing engine by expanding the AST to support missing clauses and implementing the foundational Style Engine.
 
-### User Review Required
-> [!IMPORTANT]
-> The style engine will run independently of the semantic engine. Should the linter automatically fix style issues (e.g., auto-capitalize keywords) or just report them as errors for now?
-
-### Proposed Changes
+### Implemented Changes
 
 #### 1. Expand the AST and Parser
-- **[MODIFY] `src/lexer/mod.rs`**: Add tokens for `JOIN`, `ON`, `AND`, `OR`, `GROUP BY`, etc.
+- **[MODIFY] `src/lexer/mod.rs`**: Added tokens for `JOIN`, `ON`, `AND`, `OR`, `GROUP`, and `BY`.
 - **[MODIFY] `src/parser/mod.rs`**: 
-  - Add `WhereClause` struct and expression tree (Binary expressions: `Left`, `Op`, `Right`).
-  - Add `JoinClause` struct (Join Type, Table, Condition).
-  - Update `parse_select` to parse these new optional clauses.
+  - Added `WhereClause` struct and expression tree (Binary expressions: `Left`, `Op`, `Right`).
+  - Added `JoinClause` struct (Join Type, Table, Condition).
+  - Added `group_by` field to `SelectStatement` to store a list of `ColumnRef`s.
+  - Updated `parse_select` to parse these new optional clauses seamlessly.
 
 #### 2. Implement the Style Rule Engine
-- **[NEW] `src/style/mod.rs`**: Create a basic trait/interface for Style Rules.
-- **[NEW] `src/style/casing.rs`**: Implement `KeywordCasingRule` (ensures `SELECT`, `FROM`, `WHERE` are uppercase).
-- **[NEW] `src/style/commas.rs`**: Implement `TrailingCommaRule` (detects extra commas before `FROM`).
+- **[NEW] `src/style/mod.rs`**: Created a basic trait/interface for Style Rules.
+- **[NEW] `src/style/casing.rs`**: Implemented `KeywordCasingRule` (ensures `SELECT`, `FROM`, `WHERE`, `GROUP BY`, etc. are uppercase).
+- **[NEW] `src/style/commas.rs`**: Implemented `TrailingCommaRule` (detects extra commas before `FROM`).
 
-#### 3. CLI Integration
-- **[MODIFY] `src/main.rs`**: Run the style rules over the tokens/AST before (or alongside) the semantic validation.
-
-### Verification Plan
-- Write unit tests for parsing `WHERE` and `JOIN` clauses.
-- Write unit tests for the Casing and Comma style rules.
-- Update `sample.sql` to include style violations (e.g., lowercase `select`) and a `WHERE` clause, and verify the CLI catches them.
+#### 3. CLI Integration & Verification
+- **[MODIFY] `src/main.rs`**: Integrated the style rules to run over the tokens/AST before (or alongside) the semantic validation.
+- **[MODIFY] `src/exec/mod.rs`**: Updated all mock `SelectStatement` initializers in tests to include the new `group_by` field.
+- **[NEW] `sample.sql`**: Created a sample SQL file with style violations and a `WHERE`/`GROUP BY` clause. Verified that `cargo run -- lint sample.sql` successfully lexes, parses, and auto-fixes the issues.
 
 ---
 
-## 9. Current Objective: Phase 2 (Real Schema Ingestion)
+### 9. Current Objective: Phase 2 (Real Schema Ingestion) [COMPLETED]
 
-To turn Phase 2 green, we need to move away from our hardcoded mock schema and build a real semantic engine capable of catching complex structural SQL errors.
+This phase successfully moved away from the hardcoded mock schema and built a real semantic engine capable of catching complex structural SQL errors, directly supporting DDL files and dbt manifests.
 
-### User Review Required
-> [!IMPORTANT]
-> 1. **Schema Format**: For the MVP, should we define a simple, custom `schema.json` format to represent our tables and columns, or attempt to parse a standard `dbt manifest.json` right away? (Recommendation: Start with a simple custom `schema.json` to prove the logic).
-> 2. **Missing Schemas**: If a user runs the linter without providing a schema file, should the linter fail entirely, or just run the Style Engine and skip semantic validation?
+### Implemented Changes
 
-### Proposed Changes
+#### 1. Schema Ingestion
+- **[MODIFY] `src/semantic/mod.rs`**: Built `load_from_ddl` to parse basic CREATE TABLE statements and infer partition/PII column metadata from comments.
+- **[NEW] `src/semantic/dbt.rs`**: Built a parser to consume standard `dbt manifest.json` files and accurately populate the `SchemaRegistry` with model and source structures.
 
-#### 1. Schema Ingestion (`src/semantic/schema.rs`)
-- **[NEW] `SchemaConfig`**: Define a Serde-compatible struct to parse a `schema.json` file. The schema should define tables, columns, and column data types (e.g., INT, VARCHAR).
-- **[MODIFY] `src/semantic/mod.rs`**: Remove `load_mock_schema()` and replace it with `load_from_file(path)`.
+#### 2. Advanced Semantic Rules
+- **[MODIFY] `src/main.rs`**: Implemented `InvalidColumnReference` to check if a requested column exists in the queried table(s).
+- **[MODIFY] `src/main.rs`**: Implemented `AmbiguousColumn` logic for queries containing a `JOIN`, ensuring that if a column exists in multiple tables, it must be fully qualified.
 
-#### 2. Advanced Semantic Rules (`src/semantic/rules.rs`)
-- **[NEW] `InvalidColumnReference`**: Check if a requested column exists in the queried table(s).
-- **[NEW] `AmbiguousColumn`**: If a query contains a `JOIN`, and a column exists in *both* tables (e.g., `id`), flag an error if the user doesn't fully qualify it (e.g., `users.id`).
+#### 3. AST Updates
+- **[MODIFY] Parser & Lexer**: Updated column parsing to recognize fully qualified names (`table.column`), storing them in a `ColumnRef` struct.
 
-#### 3. AST Updates (`src/parser/mod.rs` & `src/lexer/mod.rs`)
-- **[MODIFY] Parser**: Update column parsing to recognize fully qualified names (`table.column`). 
-  - Add support for the `.` token in the Lexer.
-  - Update AST `SelectStatement` to store `CompoundIdentifier`s or split them into `(Option<String>, String)` representing `(Table, Column)`.
-
-#### 4. CLI Integration (`src/main.rs`)
-- **[MODIFY] `src/cli/mod.rs`**: Add an optional `--schema <PATH>` flag to the CLI.
-- **[MODIFY] `src/main.rs`**: Load the schema from the provided path, pass the AST through the new Semantic Engine rules, and report all semantic errors discovered.
-
-### Verification Plan
-- Create a `schema.json` file with multiple tables (`users`, `orders`).
-- Create `test_queries.sql` with a `JOIN` that contains an ambiguous column reference.
-- Verify the linter catches the ambiguous column and correctly validates columns across multiple joined tables.
+#### 4. CLI Integration
+- **[MODIFY] `src/cli/mod.rs`**: Added optional `--schema <PATH>` and `--dbt-manifest <PATH>` flags to the CLI.
+- **[MODIFY] `src/main.rs`**: Enabled the loading of schemas from the provided paths, passing the AST through the Semantic Engine rules, and reporting discovered semantic errors.
 
 ---
 
-## 10. Current Objective: Phase 3 (Virtual Execution Engine)
+### 10. Current Objective: Phase 3 (Virtual Execution Engine) [COMPLETED]
 
-To turn Phase 3 green, we need to build an in-memory execution module that virtually evaluates the AST and catches runtime errors via "dry-run" analysis.
+This phase built an in-memory execution module that virtually evaluates the AST and catches runtime errors via "dry-run" analysis.
 
-### User Review Required
-> [!IMPORTANT]
-> 1. **Dry Run Errors**: Should we treat "Divide by Zero" as an error (fail CI) or a warning? (Recommendation: Error).
-> 2. **Impossible Filters**: `WHERE 1 = 0` is sometimes used intentionally to query table schemas without returning data. Should we flag it as an error or warning? (Recommendation: Warning).
+### Implemented Changes
 
-### Proposed Changes
+#### 1. AST Updates for Math Operators
+- **[MODIFY] Lexer (`src/lexer/mod.rs`)**: Updated operator regex to explicitly support `+`, `-`, `*`, `/`.
+- **[MODIFY] Parser (`src/parser/mod.rs`)**: Extended `parse_expression` to handle basic arithmetic operations and correctly parse them into `Expression::BinaryOp`.
 
-#### 1. AST Updates for Math Operators (`src/lexer/mod.rs` & `src/parser/mod.rs`)
-- **[MODIFY] Lexer**: Update operator regex to explicitly support `+`, `-`, `*`, `/`. We must ensure it plays well with the `Token::Asterisk`.
-- **[MODIFY] Parser**: Extend `parse_expression` to handle basic arithmetic operations and correctly parse them into `Expression::BinaryOp`.
-
-#### 2. Virtual Execution Engine (`src/exec/mod.rs`)
-- **[NEW] `src/exec/mod.rs`**: Build the execution engine to statically evaluate an `Expression`.
-- **[NEW] `src/exec/eval.rs`**: Implement `evaluate_expression(expr)` that resolves `BinaryOp` nodes to constant values when possible (constant folding).
-- **[NEW] `src/exec/rules.rs`**: Implement rules:
+#### 2. Virtual Execution Engine
+- **[NEW] `src/exec/mod.rs`**: Built the execution engine module.
+- **[NEW] `src/exec/eval.rs`**: Implemented `evaluate_expression(expr)` that resolves `BinaryOp` nodes to constant values when possible (constant folding).
+- **[NEW] `src/exec/rules.rs`**: Implemented rules for:
   - `DivideByZeroError`: Triggered if a division by literal `0` is detected in an expression.
   - `ImpossibleFilterWarning`: Triggered if a `WHERE` clause statically evaluates to `false`.
 
-#### 3. CLI Integration (`src/main.rs`)
-- **[MODIFY] `src/main.rs`**: Plug the new execution engine into the pipeline after Semantic Validation.
-- **[MODIFY] `src/main.rs`**: Log dry-run errors/warnings to the console output.
-
-### Verification Plan
-- Write unit tests for the execution module evaluating `1 + 2`, `x / 0`, and `WHERE 1 = 0`.
-- Update `test_queries.sql` with queries demonstrating a divide-by-zero error and an impossible filter.
-- Run the CLI and verify the new rules fire correctly.
+#### 3. CLI Integration
+- **[MODIFY] `src/main.rs`**: Plugged the new execution engine into the pipeline after Semantic Validation, logging dry-run errors/warnings to the console output.
 
 
 ---
