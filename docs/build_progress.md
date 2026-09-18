@@ -67,3 +67,11 @@ This document tracks the progress of the OmniSQL project throughout its developm
 - **Validation**: Wrote a custom WASM test plugin catching SELECT * and >3 JOIN queries, and successfully validated it against the complex Pagila schema and query.
 
 *Status: Phase 5 Complete. OmniSQL MVP is fully operational!*
+
+## [2026-09-18] - Phase 7 Completion (Wrappers & IDE Extension)
+- **Direct Binaries (GitHub Releases)**: Modified `.github/workflows/release.yml` to package and compress binaries (`.tar.gz` and `.zip`) matching the download scripts' naming conventions.
+- **NPM Wrapper**: Created `npm/package.json`, `install.js`, and `index.js` to dynamically download and execute the native Rust binary across platforms via npm.
+- **PyPI Wrapper**: Created `python/pyproject.toml`, `setup.py`, and the `omnisql` module to distribute the CLI via `pip`.
+- **VS Code Extension**: Bootstrapped the `omnisql-vscode` extension in `vscode-extension/` using `vscode-languageclient` to connect directly to the `omnisql lsp` native Rust server.
+
+*Status: Phase 7 Complete. Cross-platform distribution logic is ready.*

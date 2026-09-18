@@ -82,7 +82,12 @@ To achieve high performance, safety, and cross-platform distribution, we will us
 ### ✅ Phase 5: Extensibility & Packaging
 - Embed a WASM runtime (Wasmtime) into the Rust core.
 - Define a stable ABI (Application Binary Interface) for WASM plugins to interact with the SQL AST.
-- Build the CLI, setup CI/CD for cross-platform binary distribution, and develop the VS Code extension via LSP.
+- Build the CLI and setup CI/CD for cross-platform binary distribution.
+
+### ✅ Phase 6: IDE Integration & Advanced Workflow
+- Build a native `tower-lsp` Language Server to provide real-time editor squiggles.
+- Ingest dbt `manifest.json` metadata natively to remove manual DDL maintenance.
+- Introduce an AST/Token-based `--fix` engine to automatically patch style violations safely.
 
 ---
 
@@ -259,28 +264,58 @@ This phase introduced WebAssembly (WASM) plugins for custom rules and prepared t
 #### 2. Packaging
 - **[NEW] .github/workflows/release.yml**: Set up automated cross-compilation for Windows, macOS, and Linux using GitHub Actions.
 
- 
- - - - 
- 
- # #   1 3 .   C u r r e n t   O b j e c t i v e :   P h a s e   6   ( I D E   I n t e g r a t i o n   &   A d v a n c e d   W o r k f l o w )   [ C O M P L E T E D ] 
- 
- T h i s   p h a s e   b r o u g h t   O m n i S Q L   f r o m   a   C L I   t o o l   t o   a   s e a m l e s s l y   i n t e g r a t e d   d e v e l o p e r   e x p e r i e n c e . 
- 
- # # #   I m p l e m e n t e d   C h a n g e s 
- 
- # # # #   1 .   L a n g u a g e   S e r v e r   P r o t o c o l   ( L S P )   E n g i n e 
- -   * * [ N E W ]   s r c / l s p / m o d . r s * * :   I m p l e m e n t e d   a   \ 	 o w e r - l s p \   s e r v e r   t h a t   p r o v i d e s   r e a l - t i m e   d i a g n o s t i c s   a s   t h e   u s e r   t y p e s . 
- -   * * [ M O D I F Y ]   s r c / c l i / m o d . r s * * :   A d d e d   a n   \ l s p \   s u b c o m m a n d   t o   s t a r t   t h e   l a n g u a g e   s e r v e r . 
- -   * * [ M O D I F Y ]   C a r g o . t o m l * * :   A d d e d   \ 	 o w e r - l s p \   a n d   \ 	 o k i o \   d e p e n d e n c i e s . 
- 
- # # # #   2 .   N a t i v e   d b t   I n t e g r a t i o n 
- -   * * [ N E W ]   s r c / s e m a n t i c / d b t . r s * * :   D e f i n e d   S e r d e   s t r u c t s   t o   p a r s e   t h e   \ 
- o d e s \   a n d   \ s o u r c e s \   o b j e c t s   i n s i d e   \ m a n i f e s t . j s o n \ . 
- -   * * [ M O D I F Y ]   s r c / s e m a n t i c / m o d . r s * * :   E x t e n d e d   \ S c h e m a R e g i s t r y \   w i t h   a   \ l o a d _ f r o m _ d b t _ m a n i f e s t ( p a t h ) \   f u n c t i o n . 
- -   * * [ M O D I F Y ]   s r c / c l i / m o d . r s * * :   A d d e d   a   \ - - d b t - m a n i f e s t   < P A T H > \   f l a g   t o   t h e   \ l i n t \   c o m m a n d . 
- 
- # # # #   3 .   A u t o - F i x i n g   E n g i n e 
- -   * * [ N E W ]   s r c / s t y l e / f i x . r s * * :   I m p l e m e n t e d   a   t o k e n - b a s e d   s t r i n g   m a n i p u l a t i o n   e n g i n e   t o   a p p l y   f i x e s   u s i n g   b y t e   o f f s e t s   f r o m   t h e   l e x e r . 
- -   * * [ M O D I F Y ]   s r c / m a i n . r s * * :   A p p l i e d   c o m p u t e d   f i x e s   t o   t h e   s o u r c e   s t r i n g   a n d   w r i t t e n   b a c k   t o   t h e   f i l e   i f   \ - - f i x \   i s   p a s s e d . 
-  
- 
+---
+
+## 13. Current Objective: Phase 6 (IDE Integration & Advanced Workflow) [COMPLETED]
+
+This phase brought OmniSQL from a CLI tool to a seamlessly integrated developer experience.
+
+### Implemented Changes
+
+#### 1. Language Server Protocol (LSP) Engine
+- **[NEW] src/lsp/mod.rs**: Implemented a tower-lsp server that provides real-time diagnostics as the user types.
+- **[MODIFY] src/cli/mod.rs**: Added an lsp subcommand to start the language server.
+- **[MODIFY] Cargo.toml**: Added tower-lsp and tokio dependencies.
+
+#### 2. Native dbt Integration
+- **[NEW] src/semantic/dbt.rs**: Defined Serde structs to parse the nodes and sources objects inside manifest.json.
+- **[MODIFY] src/semantic/mod.rs**: Extended SchemaRegistry with a load_from_dbt_manifest(path) function.
+- **[MODIFY] src/cli/mod.rs**: Added a --dbt-manifest <PATH> flag to the lint command.
+
+#### 3. Auto-Fixing Engine
+- **[NEW] src/style/fix.rs**: Implemented a token-based string manipulation engine to apply fixes using byte offsets from the lexer.
+- **[MODIFY] src/main.rs**: Applied computed fixes to the source string and written back to the file if --fix is passed.
+
+---
+
+## 14. Current Objective: Phase 7 (Wrappers & IDE Extension)
+
+To turn Phase 7 green, we need to create wrappers for JS and Python ecosystems to download and run the native binary, and build a VS Code extension that utilizes the Rust language server.
+
+### User Review Required
+> [!IMPORTANT]
+> 1. **NPM Package Name**: We plan to use `omnisql` on NPM. Is this acceptable?
+> 2. **PyPI Package Name**: We plan to use `omnisql` on PyPI. Is this acceptable?
+> 3. **VS Code Extension Name**: We will name the extension `omnisql-vscode`. Should it be published under a specific publisher namespace?
+
+### Proposed Changes
+
+#### 1. NPM Wrapper
+- **[NEW] `npm/package.json`**: Definition for the NPM package.
+- **[NEW] `npm/install.js`**: Script to detect the OS/architecture and download the correct pre-compiled Rust binary from GitHub Releases.
+- **[NEW] `npm/index.js`**: Thin wrapper to execute the downloaded binary.
+
+#### 2. PyPI Wrapper
+- **[NEW] `python/pyproject.toml`** or `setup.py`: Definition for the Python package.
+- **[NEW] `python/omnisql/__init__.py`**: Python wrapper to download and execute the native binary.
+- **[NEW] `python/omnisql/install.py`**: OS detection and download script similar to NPM.
+
+#### 3. VS Code Extension
+- **[NEW] `vscode-extension/package.json`**: Extension manifest.
+- **[NEW] `vscode-extension/src/extension.ts`**: TypeScript code that activates the LSP client.
+- **[NEW] `vscode-extension/tsconfig.json`**: TypeScript config for the extension.
+
+### Verification Plan
+- **NPM**: Run `npm install` and `npm link` in the `npm` directory locally, and verify the `omnisql` command executes correctly.
+- **PyPI**: Create a virtual environment, install the package locally, and verify the `omnisql` CLI is available.
+- **VS Code**: Compile the extension (`npm run compile`), and verify it can connect to the locally compiled Rust `omnisql lsp` server.
