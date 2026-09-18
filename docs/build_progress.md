@@ -60,3 +60,10 @@ This document tracks the progress of the OmniSQL project throughout its developm
 
 *Status: Phase 4 Complete. Ready for Phase 5 (Extensibility & Packaging).*
 
+## [2026-09-18] - Phase 5 Completion (Extensibility & Packaging)
+- **WASM Runtime Integration**: Embedded wasmtime and wasmtime-wasi to execute custom plugins compiled to WebAssembly.
+- **AST Serialization**: Leveraged serde to serialize the AST into JSON and pass it to plugins via stdin.
+- **GitHub Actions**: Configured automated cross-platform builds (.github/workflows/release.yml) for Windows, macOS, and Linux.
+- **Validation**: Wrote a custom WASM test plugin catching SELECT * and >3 JOIN queries, and successfully validated it against the complex Pagila schema and query.
+
+*Status: Phase 5 Complete. OmniSQL MVP is fully operational!*

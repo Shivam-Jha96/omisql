@@ -4,3 +4,4 @@ pub mod cli;
 pub mod semantic;
 pub mod style;
 pub mod exec;
+pub mod plugin;
