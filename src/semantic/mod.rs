@@ -1,5 +1,6 @@
 pub mod security;
 pub mod cost;
+pub mod dbt;
 
 use std::collections::HashMap;
 
@@ -32,6 +33,48 @@ impl SchemaRegistry {
         );
     }
     
+    pub fn load_from_dbt_manifest(&mut self, path: &str) -> Result<(), anyhow::Error> {
+        let manifest = dbt::DbtManifest::load_from_file(path)?;
+        
+        let mut process_nodes = |nodes: &HashMap<String, dbt::DbtNode>| {
+            for (_, node) in nodes {
+                // In dbt, nodes include models, seeds, snapshots, etc.
+                if node.resource_type == "model" || node.resource_type == "source" || node.resource_type == "seed" {
+                    let mut table_def = TableDef {
+                        columns: Vec::new(),
+                        pii_columns: Vec::new(),
+                        partition_column: None,
+                    };
+                    
+                    for (col_name, col_def) in &node.columns {
+                        table_def.columns.push(col_name.clone());
+                        
+                        if let Some(pii) = col_def.meta.get("pii") {
+                            if pii.as_bool() == Some(true) {
+                                table_def.pii_columns.push(col_name.clone());
+                            }
+                        }
+                    }
+                    
+                    // Note: Dbt doesn't have a standard partition_column meta, but users could define it
+                    if let Some(partition) = node.meta.get("partition_column") {
+                        if let Some(p_str) = partition.as_str() {
+                            table_def.partition_column = Some(p_str.to_string());
+                        }
+                    }
+
+                    // For now, use the node name as the table name
+                    self.tables.insert(node.name.clone(), table_def);
+                }
+            }
+        };
+
+        process_nodes(&manifest.nodes);
+        process_nodes(&manifest.sources);
+
+        Ok(())
+    }
+
     pub fn load_from_ddl(&mut self, ddl: &str) {
         let mut current_table = None;
         for line in ddl.lines() {

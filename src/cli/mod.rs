@@ -19,8 +19,18 @@ pub enum Commands {
         #[arg(short, long)]
         schema: Option<String>,
 
+        /// Optional path to a dbt manifest.json file
+        #[arg(long)]
+        dbt_manifest: Option<String>,
+
         /// Optional path to a WASM plugin
         #[arg(short, long)]
         plugin: Option<String>,
+        
+        /// Automatically fix style issues
+        #[arg(long)]
+        fix: bool,
     },
+    /// Start the Language Server Protocol (LSP) server
+    Lsp,
 }

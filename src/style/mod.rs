@@ -1,5 +1,6 @@
 pub mod casing;
 pub mod commas;
+pub mod fix;
 
 use std::fs::OpenOptions;
 use std::io::Write;

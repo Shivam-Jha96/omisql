@@ -1,4 +1,12 @@
-/target/
-/logs/
-/test_dbs/
-/test_results/
+target/
+logs/
+omnisql_fixes.log
+test_results/
+
+# Ignore test databases to prevent large SQL/CSV files from being committed
+test_dbs/
+
+# Ignore IDE and OS files
+.vscode/
+.DS_Store
+*.exe
