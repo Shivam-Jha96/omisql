@@ -18,5 +18,9 @@ pub enum Commands {
         /// Optional path to a DDL schema file
         #[arg(short, long)]
         schema: Option<String>,
+
+        /// Optional path to a WASM plugin
+        #[arg(short, long)]
+        plugin: Option<String>,
     },
 }

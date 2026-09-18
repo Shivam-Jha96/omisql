@@ -9,7 +9,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Lint { path, schema } => {
+        Commands::Lint { path, schema, plugin } => {
             println!("Processing path: {}", path);
             
             // Read file content
@@ -51,6 +51,28 @@ fn main() -> Result<()> {
                 }
             };
             println!("Parsing successful.");
+
+            // 2.5. Plugin Engine
+            if let Some(plugin_path) = plugin {
+                match omnisql::plugin::PluginEngine::new() {
+                    Ok(engine) => {
+                        println!("Running WASM plugin: {}", plugin_path);
+                        match engine.run_plugin(std::path::Path::new(plugin_path), &stmt) {
+                            Ok(issues) => {
+                                for issue in issues {
+                                    println!("Plugin {}: {} - {}", issue.severity, issue.rule_name, issue.message);
+                                }
+                            }
+                            Err(e) => {
+                                println!("Plugin Execution Error: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("Failed to initialize plugin engine: {}", e);
+                    }
+                }
+            }
             
             // 3. Semantic Engine
             if let Some(schema_path) = schema {
