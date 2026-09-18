@@ -82,7 +82,12 @@ To achieve high performance, safety, and cross-platform distribution, we will us
 ### ✅ Phase 5: Extensibility & Packaging
 - Embed a WASM runtime (Wasmtime) into the Rust core.
 - Define a stable ABI (Application Binary Interface) for WASM plugins to interact with the SQL AST.
-- Build the CLI, setup CI/CD for cross-platform binary distribution, and develop the VS Code extension via LSP.
+- Build the CLI and setup CI/CD for cross-platform binary distribution.
+
+### ✅ Phase 6: IDE Integration & Advanced Workflow
+- Build a native `tower-lsp` Language Server to provide real-time editor squiggles.
+- Ingest dbt `manifest.json` metadata natively to remove manual DDL maintenance.
+- Introduce an AST/Token-based `--fix` engine to automatically patch style violations safely.
 
 ---
 
