@@ -288,7 +288,7 @@ This phase brought OmniSQL from a CLI tool to a seamlessly integrated developer 
 
 ---
 
-## 14. Current Objective: Phase 7 (Wrappers & IDE Extension)
+## 14. Current Objective: Phase 7 (Wrappers & IDE Extension) [COMPLETED]
 
 To turn Phase 7 green, we need to create wrappers for JS and Python ecosystems to download and run the native binary, and build a VS Code extension that utilizes the Rust language server.
 
@@ -319,3 +319,21 @@ To turn Phase 7 green, we need to create wrappers for JS and Python ecosystems t
 - **NPM**: Run `npm install` and `npm link` in the `npm` directory locally, and verify the `omnisql` command executes correctly.
 - **PyPI**: Create a virtual environment, install the package locally, and verify the `omnisql` CLI is available.
 - **VS Code**: Compile the extension (`npm run compile`), and verify it can connect to the locally compiled Rust `omnisql lsp` server.
+
+---
+
+## 15. Current Objective: Phase 8 (Dockerization) [COMPLETED]
+
+This phase enabled CI/CD for dockerization, making it easy to run the linter without any local dependencies.
+
+### Implemented Changes
+
+#### 1. Docker Build
+- **[NEW] `Dockerfile`**: Added a multi-stage Dockerfile that builds the rust binary and packages it into a lightweight `debian:bookworm-slim` image.
+- **[NEW] `.dockerignore`**: Created an ignore file to prevent large directories from entering the Docker build context.
+
+#### 2. CI/CD Integration
+- **[NEW] `.github/workflows/docker.yml`**: Added a GitHub Action workflow to automatically build and publish the Docker image to GitHub Container Registry (ghcr.io) on tags and pushes to main.
+
+#### 3. Documentation
+- **[MODIFY] `README.md`**: Updated with instructions on how to use the Docker image to run the linter.

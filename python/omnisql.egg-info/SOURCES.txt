@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+setup.py
+omnisql/__init__.py
+omnisql/install.py
+omnisql.egg-info/PKG-INFO
+omnisql.egg-info/SOURCES.txt
+omnisql.egg-info/dependency_links.txt
+omnisql.egg-info/entry_points.txt
+omnisql.egg-info/top_level.txt
+omnisql/bin/omnisql.exe

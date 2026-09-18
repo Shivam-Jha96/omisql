@@ -11,6 +11,13 @@ OmniSQL is a blazing-fast, next-generation SQL linter built in Rust. It goes bey
 ## Installation
 Pre-compiled binaries for Windows, macOS (Intel & Apple Silicon), and Linux are automatically built via GitHub Actions and attached to each release. 
 
+### Docker
+You can also run OmniSQL using the pre-built Docker image:
+```bash
+docker pull ghcr.io/shivam-jha96/omisql:latest
+docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/shivam-jha96/omisql:latest lint your_query.sql
+```
+
 ## Development Setup
 
 ### Prerequisites
