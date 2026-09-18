@@ -285,3 +285,37 @@ This phase brought OmniSQL from a CLI tool to a seamlessly integrated developer 
 #### 3. Auto-Fixing Engine
 - **[NEW] src/style/fix.rs**: Implemented a token-based string manipulation engine to apply fixes using byte offsets from the lexer.
 - **[MODIFY] src/main.rs**: Applied computed fixes to the source string and written back to the file if --fix is passed.
+
+---
+
+## 14. Current Objective: Phase 7 (Wrappers & IDE Extension)
+
+To turn Phase 7 green, we need to create wrappers for JS and Python ecosystems to download and run the native binary, and build a VS Code extension that utilizes the Rust language server.
+
+### User Review Required
+> [!IMPORTANT]
+> 1. **NPM Package Name**: We plan to use `omnisql` on NPM. Is this acceptable?
+> 2. **PyPI Package Name**: We plan to use `omnisql` on PyPI. Is this acceptable?
+> 3. **VS Code Extension Name**: We will name the extension `omnisql-vscode`. Should it be published under a specific publisher namespace?
+
+### Proposed Changes
+
+#### 1. NPM Wrapper
+- **[NEW] `npm/package.json`**: Definition for the NPM package.
+- **[NEW] `npm/install.js`**: Script to detect the OS/architecture and download the correct pre-compiled Rust binary from GitHub Releases.
+- **[NEW] `npm/index.js`**: Thin wrapper to execute the downloaded binary.
+
+#### 2. PyPI Wrapper
+- **[NEW] `python/pyproject.toml`** or `setup.py`: Definition for the Python package.
+- **[NEW] `python/omnisql/__init__.py`**: Python wrapper to download and execute the native binary.
+- **[NEW] `python/omnisql/install.py`**: OS detection and download script similar to NPM.
+
+#### 3. VS Code Extension
+- **[NEW] `vscode-extension/package.json`**: Extension manifest.
+- **[NEW] `vscode-extension/src/extension.ts`**: TypeScript code that activates the LSP client.
+- **[NEW] `vscode-extension/tsconfig.json`**: TypeScript config for the extension.
+
+### Verification Plan
+- **NPM**: Run `npm install` and `npm link` in the `npm` directory locally, and verify the `omnisql` command executes correctly.
+- **PyPI**: Create a virtual environment, install the package locally, and verify the `omnisql` CLI is available.
+- **VS Code**: Compile the extension (`npm run compile`), and verify it can connect to the locally compiled Rust `omnisql lsp` server.

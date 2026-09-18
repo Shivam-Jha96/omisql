@@ -14,20 +14,24 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: omnisql
-            asset_name: omnisql-linux-amd64
+            plat: linux
+            arch: x86_64
+            bin_name: omnisql
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: omnisql
-            asset_name: omnisql-macos-amd64
+            plat: macos
+            arch: x86_64
+            bin_name: omnisql
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: omnisql
-            asset_name: omnisql-macos-arm64
+            plat: macos
+            arch: aarch64
+            bin_name: omnisql
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: omnisql.exe
-            asset_name: omnisql-windows-amd64.exe
+            plat: windows
+            arch: x86_64
+            bin_name: omnisql.exe
 
     steps:
       - name: Checkout code
@@ -41,11 +45,31 @@ jobs:
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Upload artifact
+      - name: Package for Linux / macOS
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czvf omnisql-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.plat }}.tar.gz ${{ matrix.bin_name }}
+
+      - name: Package for Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          Compress-Archive -Path ${{ matrix.bin_name }} -DestinationPath omnisql-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.plat }}.zip
+
+      - name: Upload artifact (Unix)
+        if: matrix.os != 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          name: omnisql-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.plat }}.tar.gz
+          path: target/${{ matrix.target }}/release/omnisql-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.plat }}.tar.gz
+
+      - name: Upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnisql-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.plat }}.zip
+          path: target/${{ matrix.target }}/release/omnisql-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.plat }}.zip
 
   release:
     name: Create GitHub Release

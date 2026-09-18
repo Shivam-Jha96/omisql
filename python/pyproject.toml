@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omnisql"
+version = "0.1.0"
+description = "Blazing-fast, next-generation SQL linter"
+authors = [
+    { name = "OmniSQL Contributors", email = "hello@omnisql.dev" }
+]
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["sql", "linter", "ast"]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+omnisql = "omnisql:main"
