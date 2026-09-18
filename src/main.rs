@@ -9,7 +9,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Lint { path, schema, plugin } => {
+        Commands::Lint { path, schema, dbt_manifest, plugin, fix } => {
             println!("Processing path: {}", path);
             
             // Read file content
@@ -21,10 +21,15 @@ fn main() -> Result<()> {
             style_engine.add_rule(Box::new(omnisql::style::commas::TrailingCommaRule));
             
             let log_path = "omnisql_fixes.log";
-            let fixed_content = style_engine.format_and_log(&content, log_path);
+            let mut fixed_content = style_engine.format_and_log(&content, log_path);
+            fixed_content = omnisql::style::fix::TokenFixer::fix_casing(&fixed_content);
             
             if fixed_content != content {
                 println!("Style auto-fixes applied. Check {} for details.", log_path);
+                if *fix {
+                    println!("Applying fixes to source file...");
+                    fs::write(path, &fixed_content)?;
+                }
             }
             
             // 1. Lexer
@@ -75,6 +80,9 @@ fn main() -> Result<()> {
             }
             
             // 3. Semantic Engine
+            let mut registry = omnisql::semantic::SchemaRegistry::new();
+            let mut schema_loaded = false;
+
             if let Some(schema_path) = schema {
                 let ddl = match fs::read_to_string(schema_path) {
                     Ok(s) => s,
@@ -84,9 +92,24 @@ fn main() -> Result<()> {
                     }
                 };
                 
-                let mut registry = omnisql::semantic::SchemaRegistry::new();
                 registry.load_from_ddl(&ddl);
-                
+                schema_loaded = true;
+            }
+
+            if let Some(manifest_path) = dbt_manifest {
+                match registry.load_from_dbt_manifest(manifest_path) {
+                    Ok(_) => {
+                        println!("Successfully loaded dbt manifest.");
+                        schema_loaded = true;
+                    }
+                    Err(e) => {
+                        println!("Failed to parse dbt manifest: {}", e);
+                        return Ok(());
+                    }
+                }
+            }
+
+            if schema_loaded {
                 let mut semantic_errors = 0;
                 
                 if let omnisql::parser::Statement::Select(ref ast) = stmt {
@@ -186,12 +209,16 @@ fn main() -> Result<()> {
                     println!("Semantic validation failed with {} errors.", semantic_errors);
                 }
             } else {
-                println!("Warning: No --schema provided. Skipping semantic validation and dry-run execution.");
+                println!("Warning: No schema provided. Skipping semantic validation and dry-run execution.");
                 use std::io::Write;
                 if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(log_path) {
                     let _ = writeln!(file, "WARNING: Semantic engine skipped due to missing schema.");
                 }
             }
+        }
+        Commands::Lsp => {
+            println!("Starting LSP server...");
+            tokio::runtime::Runtime::new().unwrap().block_on(omnisql::lsp::run_server());
         }
     }
 
