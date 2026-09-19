@@ -1,6 +1,6 @@
 {
   "name": "omnisql",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Blazing-fast, next-generation SQL linter",
   "main": "index.js",
   "bin": {
