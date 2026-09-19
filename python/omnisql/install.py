@@ -38,7 +38,7 @@ def main():
     url = f"https://github.com/{REPO}/releases/download/{VERSION}/{asset_name}"
     
     bin_name = "omnisql.exe" if plat == "windows" else "omnisql"
-    bin_dir = os.path.join(os.path.expanduser("~"), ".omnisql", "bin")
+    bin_dir = os.path.join(os.path.expanduser("~"), ".omnisql", "bin", VERSION)
     
     if not os.path.exists(bin_dir):
         os.makedirs(bin_dir)

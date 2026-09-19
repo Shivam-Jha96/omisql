@@ -6,10 +6,14 @@ import platform
 def main():
     plat = platform.system().lower()
     bin_name = "omnisql.exe" if plat == "windows" else "omnisql"
-    bin_path = os.path.join(os.path.expanduser("~"), ".omnisql", "bin", bin_name)
+    
+    # Import VERSION to use in path
+    from .install import VERSION
+    
+    bin_path = os.path.join(os.path.expanduser("~"), ".omnisql", "bin", VERSION, bin_name)
     
     if not os.path.exists(bin_path):
-        print("OmniSQL binary not found locally. Downloading the correct version for your system...")
+        print(f"OmniSQL {VERSION} binary not found locally. Downloading the correct version for your system...")
         from .install import main as install_main
         try:
             install_main()
