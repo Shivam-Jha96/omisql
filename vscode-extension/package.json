@@ -2,7 +2,7 @@
   "name": "omnisql-vscode",
   "displayName": "OmniSQL",
   "description": "Blazing-fast SQL linter and language server",
-  "version": "0.1.3",
+  "version": "1.0.0",
   "publisher": "omnisql",
   "engines": {
     "vscode": "^1.74.0"
