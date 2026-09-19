@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - Initial Public Release
+## [1.0.0] - Official Launch
 
-This is the very first Minimum Viable Product (MVP) release of OmniSQL, a next-generation SQL linter built natively in Rust.
+This is the official v1.0.0 launch of OmniSQL, a next-generation SQL linter built natively in Rust.
 
 ### Added
 - **High-Performance Parsing Engine**: Lexes and parses SQL instantly, with initial strong support for PostgreSQL and Snowflake dialects.
