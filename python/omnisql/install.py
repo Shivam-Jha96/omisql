@@ -2,6 +2,10 @@ import os
 import sys
 import platform
 import stat
+import urllib.request
+import tarfile
+import zipfile
+import shutil
 
 VERSION = os.environ.get("OMNISQL_VERSION", "v0.1.0")
 REPO = "Shivam-Jha96/omnisql"
@@ -43,16 +47,27 @@ def main():
     
     print(f"Downloading OmniSQL for {plat}-{arch} from {url}...")
     
-    # Mocking download for MVP
+    tmp_path = os.path.join(bin_dir, f"temp_archive.{suffix}")
     try:
-        with open(bin_path, "w") as f:
-            f.write("#!/usr/bin/env python\nprint('OmniSQL Mock Binary Execution')\n")
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(tmp_path, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+        
+        if suffix == "zip":
+            with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
+                zip_ref.extract(bin_name, path=bin_dir)
+        else:
+            with tarfile.open(tmp_path, 'r:gz') as tar_ref:
+                tar_ref.extract(bin_name, path=bin_dir)
+                
+        os.remove(tmp_path)
         
         # Make executable
-        st = os.stat(bin_path)
-        os.chmod(bin_path, st.st_mode | stat.S_IEXEC)
+        os.chmod(bin_path, 0o755)
         print(f"Successfully installed OmniSQL to {bin_path}")
     except Exception as e:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
         print(f"Failed to install OmniSQL: {e}")
         sys.exit(1)
 

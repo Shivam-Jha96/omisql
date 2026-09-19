@@ -45,19 +45,56 @@ async function downloadBinary() {
     }
     
     const binPath = path.join(binDir, BIN_NAME);
+    const tempFile = path.join(binDir, `temp.${suffix}`);
     
     console.log(`Downloading OmniSQL for ${platform}-${arch} from ${url}...`);
 
-    // In a real implementation, we would use axios/https to download and extract the tar/zip.
-    // For this MVP MVP phase, we will just create a mock binary or copy a local one if it exists,
-    // to simulate a successful installation without depending on actual GitHub releases.
-    
     try {
-        // Mock successful download for testing
-        fs.writeFileSync(binPath, '#!/usr/bin/env node\nconsole.log("OmniSQL Mock Binary Execution");', { mode: 0o755 });
+        const axios = require('axios');
+        const response = await axios({
+            method: 'get',
+            url: url,
+            responseType: 'stream',
+            maxRedirects: 5
+        });
+
+        const writer = fs.createWriteStream(tempFile);
+        response.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        console.log('Download complete. Extracting...');
+
+        if (suffix === 'zip') {
+            const unzipper = require('unzipper');
+            await fs.createReadStream(tempFile)
+                .pipe(unzipper.Parse())
+                .on('entry', function (entry) {
+                    if (entry.path === 'omnisql.exe') {
+                        entry.pipe(fs.createWriteStream(binPath));
+                    } else {
+                        entry.autodrain();
+                    }
+                })
+                .promise();
+        } else {
+            const tar = require('tar');
+            await tar.x({
+                file: tempFile,
+                cwd: binDir,
+                filter: (path) => path === 'omnisql'
+            });
+            fs.chmodSync(binPath, 0o755);
+        }
+
+        fs.unlinkSync(tempFile);
         console.log(`Successfully installed OmniSQL to ${binPath}`);
     } catch (e) {
         console.error("Failed to install OmniSQL:", e);
+        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
         process.exit(1);
     }
 }
