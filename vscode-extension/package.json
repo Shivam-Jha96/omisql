@@ -16,6 +16,7 @@
     "url": "https://github.com/Shivam-Jha96/omnisql.git"
   },
   "license": "MIT",
+  "icon": "icon.png",
   "activationEvents": [
     "onLanguage:sql"
   ],
