@@ -1,0 +1,9 @@
+.vscode/**
+.vscode-test/**
+src/**
+.gitignore
+yarn.lock
+webpack.config.js
+webpack.config.ts
+**/*.map
+**/*.ts
