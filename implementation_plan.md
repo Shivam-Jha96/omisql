@@ -334,4 +334,28 @@ pm/install.js**: Replaced mock download logic with actual download and extractio
 
 #### 3. CI/CD & Cleanup
 - **[MODIFY] .github/workflows/release.yml**: Configured full cross-platform release workflow using GitHub Actions.
-- **[DELETE] 	est_plugin/**: Removed the dummy test plugin project as it is no longer needed.
+- **[DELETE] test_plugin/**: Removed the dummy test plugin project as it is no longer needed.
+
+---
+
+## 17. Current Objective: Phase 10 (Day 1 Readiness & v0.1.3 Release) [COMPLETED]
+
+This phase resolved critical deployment bugs and refactored wrapper architectures to ensure a flawless public launch of `v0.1.3`.
+
+### Implemented Changes
+
+#### 1. VS Code Marketplace Fixes
+- **[MODIFY] vscode-extension/icon.png**: Converted the auto-generated JPEG to a true PNG format to pass VS Code's strict marketplace validation.
+- **[MODIFY] vscode-extension/package.json**: Restored the `icon` field and bumped version to `0.1.3`.
+- **[MODIFY] .vscodeignore**: Configured ignore rules to prevent warnings and keep the VSIX package small while preserving `node_modules` dependencies.
+
+#### 2. Python Architecture Refactor (JIT Downloads)
+- **[MODIFY] python/setup.py**: Removed custom build hooks and `package_data` inclusion. PyPI packages are now pure-Python and lightweight.
+- **[MODIFY] python/omnisql/__init__.py**: Refactored to download the native binary *at runtime* (JIT) if it does not exist, rather than at `pip install` time.
+- **[MODIFY] python/omnisql/install.py**: Changed the download destination to `~/.omnisql/bin/omnisql` to resolve global `sudo` permissions errors across all operating systems.
+
+#### 3. CI/CD Pipeline Fixes
+- **[MODIFY] .github/workflows/release.yml**: 
+  - Upgraded node versions in GitHub Actions from `18.x` to `20.x` to resolve a known bug with `vsce publish` and `undici`.
+  - Fixed a critical `actions/download-artifact@v4` glob resolution bug by defining explicit patterns and using recursive `artifacts/**` for `action-gh-release`.
+- **[NEW] LICENSE**: Added a standard MIT License to the repository root to prevent interactive prompt hangs during automated CI/CD builds.

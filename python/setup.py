@@ -5,22 +5,8 @@ import subprocess
 from setuptools import setup, find_packages
 from setuptools.command.build_py import build_py
 
-class CustomBuildCommand(build_py):
-    def run(self):
-        # We will execute the install.py script first so the binary is included
-        install_script = os.path.join(os.path.dirname(__file__), 'omnisql', 'install.py')
-        subprocess.check_call([sys.executable, install_script])
-
-        # Run the standard build process
-        build_py.run(self)
-
 setup(
     name="omnisql",
     version="0.1.3",
     packages=find_packages(),
-    cmdclass={
-        'build_py': CustomBuildCommand,
-    },
-    include_package_data=True,
-    package_data={'omnisql': ['bin/*']},
 )
