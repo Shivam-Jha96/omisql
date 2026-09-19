@@ -17,6 +17,10 @@ pub enum Token {
     And,
     #[token("OR", ignore(ascii_case))]
     Or,
+    #[token("GROUP", ignore(ascii_case))]
+    Group,
+    #[token("BY", ignore(ascii_case))]
+    By,
     #[token("DROP", ignore(ascii_case))]
     Drop,
     #[token("ALTER", ignore(ascii_case))]

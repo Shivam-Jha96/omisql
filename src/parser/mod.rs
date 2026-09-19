@@ -29,6 +29,7 @@ pub struct SelectStatement {
     pub table: String,
     pub joins: Vec<JoinClause>,
     pub where_clause: Option<Expression>,
+    pub group_by: Option<Vec<ColumnRef>>,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
@@ -106,6 +107,7 @@ pub fn parse_select(tokens: &[Token]) -> Result<SelectStatement, String> {
     let table;
     let mut joins = Vec::new();
     let mut where_clause = None;
+    let mut group_by = None;
 
     let mut iter = tokens.iter().peekable();
 
@@ -176,6 +178,43 @@ pub fn parse_select(tokens: &[Token]) -> Result<SelectStatement, String> {
                 iter.next(); // Consume WHERE
                 where_clause = Some(parse_expression(&mut iter)?);
             }
+            Token::Group => {
+                iter.next(); // Consume GROUP
+                match iter.next() {
+                    Some(Token::By) => {}
+                    _ => return Err("Expected BY after GROUP".to_string()),
+                }
+                let mut gb_cols = Vec::new();
+                loop {
+                    match iter.next() {
+                        Some(Token::Identifier(name)) => {
+                            let mut col_name = name.clone();
+                            let mut table_name = None;
+                            if let Some(&&Token::Dot) = iter.peek() {
+                                iter.next(); // consume dot
+                                if let Some(Token::Identifier(sub_name)) = iter.next() {
+                                    table_name = Some(col_name);
+                                    col_name = sub_name.clone();
+                                } else {
+                                    return Err("Expected identifier after dot in GROUP BY".to_string());
+                                }
+                            }
+                            gb_cols.push(ColumnRef { table: table_name, name: col_name });
+                        }
+                        Some(Token::Comma) => continue,
+                        Some(tok) => {
+                            return Err(format!("Unexpected token in GROUP BY clause: {:?}", tok));
+                        }
+                        None => return Err("Unexpected end of tokens in GROUP BY".to_string()),
+                    }
+                    if let Some(&&Token::Comma) = iter.peek() {
+                        // handled in loop
+                    } else {
+                        break;
+                    }
+                }
+                group_by = Some(gb_cols);
+            }
             Token::Semicolon => {
                 iter.next(); // Consume Semicolon
                 break;
@@ -191,6 +230,7 @@ pub fn parse_select(tokens: &[Token]) -> Result<SelectStatement, String> {
         table,
         joins,
         where_clause,
+        group_by,
     })
 }
 
@@ -278,5 +318,48 @@ mod tests {
         assert_eq!(ast.columns[0].table, Some("users".to_string()));
         assert_eq!(ast.columns[0].name, "id".to_string());
         assert!(ast.where_clause.is_some());
+    }
+
+    #[test]
+    fn test_parse_join() {
+        let tokens = vec![
+            Token::Select,
+            Token::Asterisk,
+            Token::From,
+            Token::Identifier("orders".to_string()),
+            Token::Join,
+            Token::Identifier("users".to_string()),
+            Token::On,
+            Token::Identifier("orders".to_string()),
+            Token::Dot,
+            Token::Identifier("user_id".to_string()),
+            Token::Operator("=".to_string()),
+            Token::Identifier("users".to_string()),
+            Token::Dot,
+            Token::Identifier("id".to_string()),
+        ];
+        
+        let ast = parse_select(&tokens).unwrap();
+        assert_eq!(ast.table, "orders".to_string());
+        assert_eq!(ast.joins.len(), 1);
+        assert_eq!(ast.joins[0].table, "users".to_string());
+    }
+
+    #[test]
+    fn test_parse_group_by() {
+        let tokens = vec![
+            Token::Select,
+            Token::Identifier("status".to_string()),
+            Token::From,
+            Token::Identifier("orders".to_string()),
+            Token::Group,
+            Token::By,
+            Token::Identifier("status".to_string()),
+        ];
+        
+        let ast = parse_select(&tokens).unwrap();
+        assert_eq!(ast.table, "orders".to_string());
+        assert!(ast.group_by.is_some());
+        assert_eq!(ast.group_by.unwrap()[0].name, "status".to_string());
     }
 }

@@ -43,6 +43,7 @@ mod tests {
             table: "t1".to_string(),
             joins: vec![],
             where_clause: Some(expr),
+            group_by: None,
         };
         
         let issues = check_execution_rules(&ast);
@@ -72,6 +73,7 @@ mod tests {
             table: "t1".to_string(),
             joins: vec![],
             where_clause: Some(expr),
+            group_by: None,
         };
         
         let issues = check_execution_rules(&ast);
