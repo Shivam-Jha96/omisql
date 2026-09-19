@@ -308,3 +308,30 @@ This phase enabled CI/CD for dockerization, making it easy to run the linter wit
 
 #### 3. Documentation
 - **[MODIFY] `README.md`**: Updated with instructions on how to use the Docker image to run the linter.
+
+---
+
+## 16. Current Objective: Phase 9 (Go-To-Market & Polish) [COMPLETED]
+
+This phase finalized the Go-To-Market (GTM) materials and polished the wrapper installation scripts to ensure real functionality for the v0.1.0 MVP launch.
+
+### Implemented Changes
+
+#### 1. Go-To-Market Documentation
+- **[NEW] CHANGELOG.md**: Created a detailed changelog for the v0.1.0 MVP release.
+- **[NEW] docs/pitch_deck.md**: Created the official pitch deck highlighting OmniSQL's value proposition.
+- **[NEW] docs/product_catalogue.md**: Created the product catalogue detailing the core modules and rules.
+- **[NEW] scode-extension/README.md**: Added a user-facing README for the VS Code marketplace.
+- **[NEW] scode-extension/icon.png**: Added the extension logo.
+
+#### 2. Wrapper Polish
+- **[MODIFY] 
+pm/install.js**: Replaced mock download logic with actual download and extraction from GitHub Releases.
+- **[MODIFY] python/omnisql/install.py**: Added real download logic for PyPI distribution using urllib.
+- **[MODIFY] python/omnisql/__init__.py**: Cleaned up the wrapper script.
+- **[MODIFY] python/setup.py**: Ensured the install script runs during the build process so the binary is included.
+- **[MODIFY] scode-extension/package.json**: Added repository URL, license, and icon configuration.
+
+#### 3. CI/CD & Cleanup
+- **[MODIFY] .github/workflows/release.yml**: Configured full cross-platform release workflow using GitHub Actions.
+- **[DELETE] 	est_plugin/**: Removed the dummy test plugin project as it is no longer needed.

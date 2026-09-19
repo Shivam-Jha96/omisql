@@ -17,17 +17,7 @@ def main():
     
     # Run the binary
     try:
-        if plat == "windows":
-            # On windows, since it's a mocked Python script for now, run with sys.executable
-            # In real scenario it would be a real exe, so we just run the bin_path
-            with open(bin_path, "r") as f:
-                content = f.read()
-            if "python" in content.split("\n")[0]:
-                result = subprocess.run([sys.executable, bin_path] + args)
-            else:
-                result = subprocess.run([bin_path] + args)
-        else:
-            result = subprocess.run([bin_path] + args)
+        result = subprocess.run([bin_path] + args)
         sys.exit(result.returncode)
     except Exception as e:
         print(f"Failed to execute OmniSQL: {e}")

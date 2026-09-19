@@ -1,0 +1,12 @@
+{
+  "name": "omnisql-ts-plugin-example",
+  "version": "1.0.0",
+  "description": "An example custom OmniSQL rule written in TypeScript and compiled to WASM via Javy",
+  "scripts": {
+    "build": "npx tsc index.ts && javy compile index.js -o custom_rule.wasm"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "javy": "^1.0.0"
+  }
+}
