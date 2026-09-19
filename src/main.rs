@@ -217,7 +217,7 @@ fn main() -> Result<()> {
             }
         }
         Commands::Lsp => {
-            println!("Starting LSP server...");
+            eprintln!("Starting LSP server...");
             tokio::runtime::Runtime::new().unwrap().block_on(omnisql::lsp::run_server());
         }
     }
