@@ -1,4 +1,6 @@
-use crate::lexer::Token;
+use sqlparser::dialect::{GenericDialect, PostgreSqlDialect};
+use sqlparser::parser::{Parser, ParserError};
+use sqlparser::ast::{self as sqlast, SelectItem, Expr, JoinOperator, TableFactor};
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ColumnRef {
@@ -53,313 +55,168 @@ pub enum Statement {
     Drop(DropStatement),
     Alter(AlterStatement),
     Grant(GrantStatement),
+    Ignored,
 }
 
-pub fn parse_statement(tokens: &[Token]) -> Result<Statement, String> {
-    if tokens.is_empty() {
-        return Err("Empty statement".to_string());
-    }
-    match tokens[0] {
-        Token::Select => Ok(Statement::Select(parse_select(tokens)?)),
-        Token::Drop => Ok(Statement::Drop(parse_drop(tokens)?)),
-        Token::Alter => Ok(Statement::Alter(parse_alter(tokens)?)),
-        Token::Grant => Ok(Statement::Grant(parse_grant(tokens)?)),
-        _ => Err("Unsupported statement type".to_string()),
-    }
+#[derive(Debug)]
+pub struct ParseError {
+    pub message: String,
+    pub line: usize,
+    pub col: usize,
 }
 
-fn parse_drop(tokens: &[Token]) -> Result<DropStatement, String> {
-    let mut iter = tokens.iter().peekable();
-    iter.next(); // Consume DROP
-    if let Some(Token::Table) = iter.next() {
-        if let Some(Token::Identifier(name)) = iter.next() {
-            return Ok(DropStatement { table: name.clone() });
-        }
-    }
-    Err("Invalid DROP statement".to_string())
-}
-
-fn parse_alter(tokens: &[Token]) -> Result<AlterStatement, String> {
-    let mut iter = tokens.iter().peekable();
-    iter.next(); // Consume ALTER
-    if let Some(Token::Table) = iter.next() {
-        if let Some(Token::Identifier(name)) = iter.next() {
-            return Ok(AlterStatement { table: name.clone() });
-        }
-    }
-    Err("Invalid ALTER statement".to_string())
-}
-
-fn parse_grant(tokens: &[Token]) -> Result<GrantStatement, String> {
-    let mut iter = tokens.iter().peekable();
-    iter.next(); // Consume GRANT
-    let mut all_privileges = false;
-    if let Some(Token::All) = iter.next() {
-        if let Some(Token::Privileges) = iter.peek() {
-            all_privileges = true;
-        }
-    }
-    Ok(GrantStatement { all_privileges })
-}
-
-pub fn parse_select(tokens: &[Token]) -> Result<SelectStatement, String> {
-    let mut columns = Vec::new();
-    let table;
-    let mut joins = Vec::new();
-    let mut where_clause = None;
-    let mut group_by = None;
-
-    let mut iter = tokens.iter().peekable();
-
-    // Expect SELECT
-    match iter.next() {
-        Some(Token::Select) => {}
-        _ => return Err("Expected SELECT statement".to_string()),
-    }
-
-    // Parse columns
-    loop {
-        match iter.next() {
-            Some(Token::Identifier(name)) => {
-                let mut col_name = name.clone();
-                let mut table_name = None;
-                if let Some(&&Token::Dot) = iter.peek() {
-                    iter.next(); // consume dot
-                    if let Some(Token::Identifier(sub_name)) = iter.next() {
-                        table_name = Some(col_name);
-                        col_name = sub_name.clone();
-                    } else {
-                        return Err("Expected identifier after dot".to_string());
+pub fn parse_sql(sql: &str) -> Result<Statement, ParseError> {
+    let dialect = sqlparser::dialect::PostgreSqlDialect {};
+    let ast_list = match Parser::parse_sql(&dialect, sql) {
+        Ok(ast) => ast,
+        Err(e) => {
+            let mut line = 1;
+            let mut col = 1;
+            if let ParserError::ParserError(ref msg) = e {
+                if let Some(pos) = msg.find(" at Line: ") {
+                    let parts: Vec<&str> = msg[pos..].split(',').collect();
+                    if parts.len() >= 2 {
+                        if let Ok(l) = parts[0].replace(" at Line: ", "").trim().parse() {
+                            line = l;
+                        }
+                        if let Ok(c) = parts[1].replace(" Column: ", "").trim().parse() {
+                            col = c;
+                        }
                     }
                 }
-                columns.push(ColumnRef { table: table_name, name: col_name });
             }
-            Some(Token::Asterisk) => {
-                columns.push(ColumnRef { table: None, name: "*".to_string() });
-            }
-            Some(Token::Comma) => continue,
-            Some(Token::From) => break,
-            Some(tok) => return Err(format!("Unexpected token in SELECT clause: {:?}", tok)),
-            None => return Err("Unexpected end of tokens".to_string()),
+            return Err(ParseError { message: e.to_string(), line, col });
         }
-    }
+    };
 
-    // Parse main table
-    match iter.next() {
-        Some(Token::Identifier(name)) => {
-            table = name.clone();
-        }
-        Some(tok) => return Err(format!("Expected table name, found: {:?}", tok)),
-        None => return Err("Unexpected end of tokens".to_string()),
+    if ast_list.is_empty() {
+        return Err(ParseError { message: "Empty statement".to_string(), line: 1, col: 1 });
     }
+    
+    Ok(convert_statement(&ast_list[0]))
+}
 
-    // Parse optional clauses
-    while let Some(&peek_tok) = iter.peek() {
-        match peek_tok {
-            Token::Join => {
-                iter.next(); // Consume JOIN
-                let join_table = match iter.next() {
-                    Some(Token::Identifier(name)) => name.clone(),
-                    _ => return Err("Expected table name after JOIN".to_string()),
+fn convert_statement(stmt: &sqlast::Statement) -> Statement {
+    match stmt {
+        sqlast::Statement::Query(query) => {
+            if let sqlast::SetExpr::Select(select) = &*query.body {
+                let columns = convert_select_items(&select.projection);
+                
+                let mut table = String::new();
+                let mut joins = Vec::new();
+                
+                if let Some(from) = select.from.first() {
+                    table = extract_table_name(&from.relation);
+                    
+                    for join in &from.joins {
+                        let join_table = extract_table_name(&join.relation);
+                        let on_expr = match &join.join_operator {
+                            JoinOperator::Inner(sqlast::JoinConstraint::On(expr))
+                            | JoinOperator::LeftOuter(sqlast::JoinConstraint::On(expr))
+                            | JoinOperator::RightOuter(sqlast::JoinConstraint::On(expr))
+                            | JoinOperator::FullOuter(sqlast::JoinConstraint::On(expr)) => {
+                                convert_expr(expr)
+                            }
+                            _ => Expression::Number("1".to_string()), // fallback
+                        };
+                        joins.push(JoinClause { table: join_table, on: on_expr });
+                    }
+                }
+                
+                let where_clause = select.selection.as_ref().map(convert_expr);
+                
+                // Note: group_by struct might differ slightly between sqlparser versions
+                let group_by = match &select.group_by {
+                    sqlast::GroupByExpr::Expressions(exprs, _) if !exprs.is_empty() => {
+                        let mut gb = Vec::new();
+                        for e in exprs {
+                            if let Expression::Column(c) = convert_expr(e) {
+                                gb.push(c);
+                            }
+                        }
+                        Some(gb)
+                    }
+                    _ => None,
                 };
                 
-                match iter.next() {
-                    Some(Token::On) => {}
-                    _ => return Err("Expected ON after JOIN table".to_string()),
-                }
-
-                let on_condition = parse_expression(&mut iter)?;
-                joins.push(JoinClause {
-                    table: join_table,
-                    on: on_condition,
-                });
-            }
-            Token::Where => {
-                iter.next(); // Consume WHERE
-                where_clause = Some(parse_expression(&mut iter)?);
-            }
-            Token::Group => {
-                iter.next(); // Consume GROUP
-                match iter.next() {
-                    Some(Token::By) => {}
-                    _ => return Err("Expected BY after GROUP".to_string()),
-                }
-                let mut gb_cols = Vec::new();
-                loop {
-                    match iter.next() {
-                        Some(Token::Identifier(name)) => {
-                            let mut col_name = name.clone();
-                            let mut table_name = None;
-                            if let Some(&&Token::Dot) = iter.peek() {
-                                iter.next(); // consume dot
-                                if let Some(Token::Identifier(sub_name)) = iter.next() {
-                                    table_name = Some(col_name);
-                                    col_name = sub_name.clone();
-                                } else {
-                                    return Err("Expected identifier after dot in GROUP BY".to_string());
-                                }
-                            }
-                            gb_cols.push(ColumnRef { table: table_name, name: col_name });
-                        }
-                        Some(Token::Comma) => continue,
-                        Some(tok) => {
-                            return Err(format!("Unexpected token in GROUP BY clause: {:?}", tok));
-                        }
-                        None => return Err("Unexpected end of tokens in GROUP BY".to_string()),
-                    }
-                    if let Some(&&Token::Comma) = iter.peek() {
-                        // handled in loop
-                    } else {
-                        break;
-                    }
-                }
-                group_by = Some(gb_cols);
-            }
-            Token::Semicolon => {
-                iter.next(); // Consume Semicolon
-                break;
-            }
-            _ => {
-                break;
+                Statement::Select(SelectStatement {
+                    columns,
+                    table,
+                    joins,
+                    where_clause,
+                    group_by,
+                })
+            } else {
+                Statement::Ignored
             }
         }
+        sqlast::Statement::Drop { object_type, names, .. } => {
+            if matches!(object_type, sqlast::ObjectType::Table) && !names.is_empty() {
+                Statement::Drop(DropStatement { table: names[0].to_string() })
+            } else {
+                Statement::Ignored
+            }
+        }
+        sqlast::Statement::AlterTable(alter) => {
+            Statement::Alter(AlterStatement { table: alter.name.to_string() })
+        }
+        sqlast::Statement::Grant(grant) => {
+            let all_privileges = matches!(grant.privileges, sqlast::Privileges::All { .. });
+            Statement::Grant(GrantStatement { all_privileges })
+        }
+        _ => Statement::Ignored,
     }
-
-    Ok(SelectStatement {
-        columns,
-        table,
-        joins,
-        where_clause,
-        group_by,
-    })
 }
 
-// Simple expression parser
-fn parse_expression<'a, I>(iter: &mut std::iter::Peekable<I>) -> Result<Expression, String>
-where
-    I: Iterator<Item = &'a Token>,
-{
-    let left = match iter.next() {
-        Some(Token::Identifier(name)) => {
-            let mut col_name = name.clone();
-            let mut table_name = None;
-            if let Some(&&Token::Dot) = iter.peek() {
-                iter.next(); // consume dot
-                if let Some(Token::Identifier(sub_name)) = iter.next() {
-                    table_name = Some(col_name);
-                    col_name = sub_name.clone();
+fn extract_table_name(relation: &TableFactor) -> String {
+    match relation {
+        TableFactor::Table { name, .. } => name.to_string(),
+        _ => "unknown".to_string(),
+    }
+}
+
+fn convert_select_items(items: &[SelectItem]) -> Vec<ColumnRef> {
+    let mut cols = Vec::new();
+    for item in items {
+        match item {
+            SelectItem::UnnamedExpr(expr) | SelectItem::ExprWithAlias { expr, .. } | SelectItem::ExprWithAliases { expr, .. } => {
+                if let Expression::Column(c) = convert_expr(expr) {
+                    cols.push(c);
                 } else {
-                    return Err("Expected identifier after dot".to_string());
+                    cols.push(ColumnRef { table: None, name: "function_or_expr".to_string() });
                 }
             }
-            Expression::Column(ColumnRef { table: table_name, name: col_name })
+            SelectItem::Wildcard(_) => {
+                cols.push(ColumnRef { table: None, name: "*".to_string() });
+            }
+            SelectItem::QualifiedWildcard(name, _) => {
+                cols.push(ColumnRef { table: Some(name.to_string()), name: "*".to_string() });
+            }
         }
-        Some(Token::Number(val)) => Expression::Number(val.clone()),
-        _ => return Err("Expected identifier or number in expression".to_string()),
-    };
-
-    let operator = match iter.peek() {
-        Some(&Token::Operator(op)) => {
-            let op_str = op.clone();
-            iter.next(); // consume op
-            op_str
-        }
-        Some(&Token::Asterisk) => { iter.next(); "*".to_string() }
-        Some(&Token::And) => { iter.next(); "AND".to_string() }
-        Some(&Token::Or) => { iter.next(); "OR".to_string() }
-        _ => return Ok(left), // Single token expression
-    };
-
-    let right = parse_expression(iter)?;
-
-    Ok(Expression::BinaryOp {
-        left: Box::new(left),
-        operator,
-        right: Box::new(right),
-    })
+    }
+    cols
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_select_asterisk() {
-        let tokens = vec![
-            Token::Select,
-            Token::Asterisk,
-            Token::From,
-            Token::Identifier("table_name".to_string()),
-            Token::Semicolon,
-        ];
-        
-        let ast = parse_select(&tokens).unwrap();
-        assert_eq!(ast.columns[0].name, "*");
-        assert_eq!(ast.table, "table_name".to_string());
-    }
-
-    #[test]
-    fn test_parse_where() {
-        let tokens = vec![
-            Token::Select,
-            Token::Identifier("users".to_string()),
-            Token::Dot,
-            Token::Identifier("id".to_string()),
-            Token::From,
-            Token::Identifier("users".to_string()),
-            Token::Where,
-            Token::Identifier("age".to_string()),
-            Token::Operator(">".to_string()),
-            Token::Number("18".to_string()),
-        ];
-        
-        let ast = parse_select(&tokens).unwrap();
-        assert_eq!(ast.table, "users".to_string());
-        assert_eq!(ast.columns[0].table, Some("users".to_string()));
-        assert_eq!(ast.columns[0].name, "id".to_string());
-        assert!(ast.where_clause.is_some());
-    }
-
-    #[test]
-    fn test_parse_join() {
-        let tokens = vec![
-            Token::Select,
-            Token::Asterisk,
-            Token::From,
-            Token::Identifier("orders".to_string()),
-            Token::Join,
-            Token::Identifier("users".to_string()),
-            Token::On,
-            Token::Identifier("orders".to_string()),
-            Token::Dot,
-            Token::Identifier("user_id".to_string()),
-            Token::Operator("=".to_string()),
-            Token::Identifier("users".to_string()),
-            Token::Dot,
-            Token::Identifier("id".to_string()),
-        ];
-        
-        let ast = parse_select(&tokens).unwrap();
-        assert_eq!(ast.table, "orders".to_string());
-        assert_eq!(ast.joins.len(), 1);
-        assert_eq!(ast.joins[0].table, "users".to_string());
-    }
-
-    #[test]
-    fn test_parse_group_by() {
-        let tokens = vec![
-            Token::Select,
-            Token::Identifier("status".to_string()),
-            Token::From,
-            Token::Identifier("orders".to_string()),
-            Token::Group,
-            Token::By,
-            Token::Identifier("status".to_string()),
-        ];
-        
-        let ast = parse_select(&tokens).unwrap();
-        assert_eq!(ast.table, "orders".to_string());
-        assert!(ast.group_by.is_some());
-        assert_eq!(ast.group_by.unwrap()[0].name, "status".to_string());
+fn convert_expr(expr: &Expr) -> Expression {
+    match expr {
+        Expr::Identifier(ident) => Expression::Column(ColumnRef { table: None, name: ident.value.clone() }),
+        Expr::CompoundIdentifier(idents) => {
+            if idents.len() >= 2 {
+                let t = idents[idents.len()-2].value.clone();
+                let c = idents[idents.len()-1].value.clone();
+                Expression::Column(ColumnRef { table: Some(t), name: c })
+            } else {
+                Expression::Column(ColumnRef { table: None, name: idents[0].value.clone() })
+            }
+        }
+        Expr::Value(val) => Expression::Number(val.to_string()),
+        Expr::BinaryOp { left, op, right } => {
+            Expression::BinaryOp {
+                left: Box::new(convert_expr(left)),
+                operator: op.to_string(),
+                right: Box::new(convert_expr(right)),
+            }
+        }
+        _ => Expression::Number("0".to_string()), // fallback
     }
 }

@@ -2,7 +2,7 @@
   "name": "omnisql-vscode",
   "displayName": "OmniSQL",
   "description": "Blazing-fast SQL linter and language server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "omnisql",
   "engines": {
     "vscode": "^1.74.0"
@@ -43,6 +43,11 @@
           "type": "string",
           "default": "omnisql",
           "description": "Path to the omnisql executable (default: 'omnisql', uses PATH)."
+        },
+        "omnisql.schemaPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to a DDL schema file used for semantic validation."
         }
       }
     }

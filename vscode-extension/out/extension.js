@@ -9,9 +9,14 @@ function activate(context) {
     // Get the executable path from configuration or fallback to 'omnisql'
     const config = vscode_1.workspace.getConfiguration('omnisql');
     const executablePath = config.get('executablePath', 'omnisql');
+    const schemaPath = config.get('schemaPath', '');
+    let args = ['lsp'];
+    if (schemaPath && schemaPath.trim() !== '') {
+        args.push('--schema', schemaPath);
+    }
     const runOptions = {
         command: executablePath,
-        args: ['lsp'], // Run the Language Server Protocol command
+        args: args, // Run the Language Server Protocol command with args
         options: {
             env: {
                 ...process.env,

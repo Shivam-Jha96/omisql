@@ -3,10 +3,8 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use logos::Logos;
 
-use crate::lexer::Token;
-use crate::parser::parse_statement;
+use crate::parser::parse_sql;
 
 pub struct Backend {
     client: Client,
@@ -53,33 +51,107 @@ impl Backend {
     async fn on_change(&self, uri: Url, text: String) {
         let mut diagnostics = Vec::new();
         
-        let mut lex = Token::lexer(&text);
-        let mut tokens = Vec::new();
-        let mut lex_error = false;
-        
-        while let Some(res) = lex.next() {
-            match res {
-                Ok(token) => tokens.push(token),
-                Err(_) => {
-                    lex_error = true;
-                    // Generic diagnostic for lex error
-                    diagnostics.push(Diagnostic {
-                        range: Range::default(),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        message: format!("Lexing Error at '{}'", lex.slice()),
-                        ..Default::default()
-                    });
-                    break;
+        match parse_sql(&text) {
+            Ok(stmt) => {
+                let schema_path_guard = self.schema_path.lock().await;
+                if let Some(path) = schema_path_guard.as_ref() {
+                    let mut registry = crate::semantic::SchemaRegistry::new();
+                    match std::fs::read_to_string(path) {
+                        Ok(ddl) => {
+                            registry.load_from_ddl(&ddl);
+                            if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("lsp_debug.log") {
+                                use std::io::Write;
+                                let _ = writeln!(file, "Schema loaded successfully. Statements parsed: {:?}", stmt);
+                            }
+                            
+                            if let crate::parser::Statement::Select(ref ast) = stmt {
+                                let mut active_tables = vec![ast.table.clone()];
+                                for join in &ast.joins {
+                                    active_tables.push(join.table.clone());
+                                }
+                                
+                                let find_col_range = |col_name: &str| -> Range {
+                                    let lines: Vec<&str> = text.lines().collect();
+                                    for (i, line) in lines.iter().enumerate() {
+                                        if let Some(col_idx) = line.find(col_name) {
+                                            return Range::new(
+                                                Position::new(i as u32, col_idx as u32),
+                                                Position::new(i as u32, (col_idx + col_name.len()) as u32)
+                                            );
+                                        }
+                                    }
+                                    Range::default()
+                                };
+
+                                for col in &ast.columns {
+                                    if col.name == "*" { continue; }
+                                    
+                                    if let Some(ref t) = col.table {
+                                        if !active_tables.contains(t) {
+                                            diagnostics.push(Diagnostic {
+                                                range: find_col_range(t),
+                                                severity: Some(DiagnosticSeverity::ERROR),
+                                                message: format!("Semantic Error: Table '{}' is not part of the query.", t),
+                                                ..Default::default()
+                                            });
+                                        } else if !registry.validate_column(t, &col.name) {
+                                            diagnostics.push(Diagnostic {
+                                                range: find_col_range(&col.name),
+                                                severity: Some(DiagnosticSeverity::ERROR),
+                                                message: format!("Semantic Error: Column '{}.{}' does not exist in schema.", t, col.name),
+                                                ..Default::default()
+                                            });
+                                        }
+                                    } else {
+                                        let matches = registry.find_tables_with_column(&col.name, &active_tables);
+                                        if matches.is_empty() {
+                                            diagnostics.push(Diagnostic {
+                                                range: find_col_range(&col.name),
+                                                severity: Some(DiagnosticSeverity::ERROR),
+                                                message: format!("Semantic Error: Column '{}' not found in any queried tables.", col.name),
+                                                ..Default::default()
+                                            });
+                                        } else if matches.len() > 1 {
+                                            diagnostics.push(Diagnostic {
+                                                range: find_col_range(&col.name),
+                                                severity: Some(DiagnosticSeverity::ERROR),
+                                                message: format!("Semantic Error: Ambiguous column '{}'.", col.name),
+                                                ..Default::default()
+                                            });
+                                        }
+                                    }
+                                }
+                                if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("lsp_debug.log") {
+                                    use std::io::Write;
+                                    let _ = writeln!(file, "Semantic diagnostics count: {}", diagnostics.len());
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("lsp_debug.log") {
+                                use std::io::Write;
+                                let _ = writeln!(file, "Failed to read schema file {}: {}", path, e);
+                            }
+                        }
+                    }
+                } else {
+                    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("lsp_debug.log") {
+                        use std::io::Write;
+                        let _ = writeln!(file, "No schema path configured.");
+                    }
                 }
-            }
-        }
-        
-        if !lex_error {
-            if let Err(e) = parse_statement(&tokens) {
+            },
+            Err(e) => {
+                let l = if e.line > 0 { e.line - 1 } else { 0 };
+                let c = if e.col > 0 { e.col - 1 } else { 0 };
+                let range = Range::new(
+                    Position::new(l as u32, c as u32),
+                    Position::new(l as u32, (c + 1) as u32)
+                );
                 diagnostics.push(Diagnostic {
-                    range: Range::default(),
+                    range,
                     severity: Some(DiagnosticSeverity::ERROR),
-                    message: format!("Parse Error: {}", e),
+                    message: format!("Parse Error: {}", e.message),
                     ..Default::default()
                 });
             }
@@ -91,13 +163,18 @@ impl Backend {
     }
 }
 
-pub async fn run_server() {
+pub async fn run_server(schema_path: Option<String>) {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
+    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("lsp_debug.log") {
+        use std::io::Write;
+        let _ = writeln!(file, "Starting LSP Server. Schema path received: {:?}", schema_path);
+    }
+
     let (service, socket) = LspService::new(|client| Backend { 
         client, 
-        schema_path: Arc::new(Mutex::new(None)) 
+        schema_path: Arc::new(Mutex::new(schema_path)) 
     });
     
     Server::new(stdin, stdout, socket).serve(service).await;

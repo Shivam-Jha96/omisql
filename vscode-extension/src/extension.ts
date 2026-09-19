@@ -13,10 +13,16 @@ export function activate(context: ExtensionContext) {
   // Get the executable path from configuration or fallback to 'omnisql'
   const config = workspace.getConfiguration('omnisql');
   const executablePath = config.get<string>('executablePath', 'omnisql');
+  const schemaPath = config.get<string>('schemaPath', '');
+
+  let args = ['lsp'];
+  if (schemaPath && schemaPath.trim() !== '') {
+    args.push('--schema', schemaPath);
+  }
 
   const runOptions: Executable = {
     command: executablePath,
-    args: ['lsp'], // Run the Language Server Protocol command
+    args: args, // Run the Language Server Protocol command with args
     options: {
       env: {
         ...process.env,

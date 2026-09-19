@@ -51,6 +51,7 @@ pub fn check_security_rules(stmt: &Statement, registry: &SchemaRegistry) -> Vec<
                 ));
             }
         }
+        Statement::Ignored => {}
     }
     
     issues

@@ -32,5 +32,9 @@ pub enum Commands {
         fix: bool,
     },
     /// Start the Language Server Protocol (LSP) server
-    Lsp,
+    Lsp {
+        /// Optional path to a DDL schema file
+        #[arg(short, long)]
+        schema: Option<String>,
+    },
 }

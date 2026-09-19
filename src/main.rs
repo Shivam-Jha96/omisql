@@ -1,9 +1,7 @@
 use clap::Parser;
 use anyhow::Result;
 use std::fs;
-use logos::Logos;
 use omnisql::cli::{Cli, Commands};
-use omnisql::lexer::Token;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -32,26 +30,11 @@ fn main() -> Result<()> {
                 }
             }
             
-            // 1. Lexer
-            let mut lex = Token::lexer(&fixed_content);
-            let mut tokens = Vec::new();
-            
-            while let Some(res) = lex.next() {
-                match res {
-                    Ok(token) => tokens.push(token),
-                    Err(_) => {
-                        println!("Lexing Error at '{}'", lex.slice());
-                        return Ok(());
-                    }
-                }
-            }
-            println!("Lexing successful: {} tokens", tokens.len());
-            
-            // 2. Parser
-            let stmt = match omnisql::parser::parse_statement(&tokens) {
+            // 1. & 2. Lexer and Parser
+            let stmt = match omnisql::parser::parse_sql(&fixed_content) {
                 Ok(stmt) => stmt,
                 Err(e) => {
-                    println!("Parse Error: {}", e);
+                    println!("Parse Error: {}", e.message);
                     return Ok(());
                 }
             };
@@ -216,9 +199,21 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Lsp => {
+        Commands::Lsp { schema } => {
+            let mut schema = schema.clone();
             eprintln!("Starting LSP server...");
-            tokio::runtime::Runtime::new().unwrap().block_on(omnisql::lsp::run_server());
+            if schema.is_none() {
+                if let Ok(settings) = std::fs::read_to_string(".vscode/settings.json") {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&settings) {
+                        if let Some(path) = json.get("omnisql.schemaPath").and_then(|v| v.as_str()) {
+                            if !path.trim().is_empty() {
+                                schema = Some(path.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            tokio::runtime::Runtime::new().unwrap().block_on(omnisql::lsp::run_server(schema));
         }
     }
 
