@@ -1,45 +1,48 @@
-# OmniSQL Linter
+### **🎉 OmniSQL v1.0.0: The Next-Generation SQL Linter**
+We are incredibly excited to announce the official v1.0.0 launch of OmniSQL!
 
-OmniSQL is a blazing-fast, next-generation SQL linter built in Rust. It goes beyond simple syntax checking by understanding database schemas, semantic meaning, cost estimation, and security vulnerabilities.
+After extensive development and stabilization, OmniSQL is ready to completely change how data engineers, analysts, and developers write SQL. Built natively in Rust, OmniSQL is not just a style checker—it is a blazingly fast, context-aware semantic engine that actually understands your database schemas, catches security risks, and estimates query costs before they ever reach production.
+### 
+### **🚀 Key Highlights**
+**⚡ Blazing-Fast Rust Core**
+Forget waiting minutes for your linter to run across your dbt project. OmniSQL's lexer and parser are written entirely in Rust, analyzing thousands of files in milliseconds.
 
-## Core Features
-- **Schema-Aware by Default**: Integrates with live databases or dbt's `manifest.json` to ensure columns and tables actually exist.
-- **Blazing Fast**: Written in Rust for parallelized, high-performance linting.
-- **Extensible Plugin Ecosystem**: Write custom business rules in TypeScript via embedded WebAssembly (WASM).
-- **Multi-dimensional Linting**: Checks for Code Style, Semantic Accuracy, Cost Optimization (e.g., missing partition filters in Snowflake/BigQuery), and Security (e.g., unmasked PII).
+**🧠 Semantic & Schema Awareness**
+Unlike legacy linters that only look at syntax, OmniSQL natively ingests your DDL files or dbt manifest.json.
 
-## Installation
-Pre-compiled binaries for Windows, macOS (Intel & Apple Silicon), and Linux are automatically built via GitHub Actions and attached to each release. 
+Invalid Column Detection: Catches typos and missing columns by verifying against your actual table schemas.
+Ambiguity Checks: Ensures columns are properly qualified when performing complex JOINs.
 
-### Docker
-You can also run OmniSQL using the pre-built Docker image:
-```bash
-docker pull ghcr.io/shivam-jha96/omisql:latest
-docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/shivam-jha96/omisql:latest lint your_query.sql
+**💸 Cost & Security Analysis**
+In cloud data warehouses, a bad query is expensive.
+
+**Cost Rules:** OmniSQL statically analyzes WHERE clauses and JOIN conditions, warning you about accidental Cartesian (1=1) cross-joins and enforcing filters on partitioned tables.
+**Security Rules:** Automatically flags the selection of unmasked @PII columns, prevents overly permissive GRANT ALL statements, and catches dangerous DROP TABLE migrations.
+
+**🔌 WebAssembly (WASM) Plugin Ecosystem**
+Need to enforce a company-specific naming convention or business rule? You don't need to learn Rust. Write your custom rules in TypeScript, Python, or Go, compile them to WebAssembly, and run them securely and natively within OmniSQL's core.
+
+**🛠️ Flawless Developer Experience**
+We believe tooling should fade into the background. OmniSQL v1.0.0 ships with:
+
+**VS Code Extension (omnisql-vscode):** A native Language Server Protocol (LSP) implementation that provides real-time squiggles and diagnostics as you type.
+Auto-Fixer: Run omnisql --fix to instantly resolve style violations (casing, commas, whitespace) across your entire project.
+### 
+### **📦 Installation**
+OmniSQL v1.0.0 distributes native binaries seamlessly. You don't need a Rust toolchain to install it—we've built pure, JIT-downloading wrappers for your favorite ecosystems.
+
+**Via NPM (JavaScript/TypeScript Ecosystems):**
+
 ```
-
-## Development Setup
-
-### Prerequisites
-- [Rust Toolchain](https://rustup.rs/) (cargo, rustc)
-- Visual Studio C++ Build Tools (Windows only)
-- WebAssembly targets for custom plugins (e.g., `rustup target add wasm32-wasip1`)
-
-### Build and Run
-```bash
-# Compile the project
-cargo build --release
-
-# Run the linter against a sample SQL file with a DDL schema and a custom WASM plugin
-cargo run -- lint path/to/query.sql --schema path/to/schema.sql --plugin path/to/plugin.wasm
+bash
+npm install -g omnisql
 ```
+**Via PyPI (Python/dbt Ecosystems):**
 
-## Architecture
-The repository is modularized into several components:
-- `src/lexer`: Tokenizes SQL strings into manageable `logos` tokens.
-- `src/parser`: Converts tokens into an Abstract Syntax Tree (AST).
-- `src/semantic`: Schema resolution, semantic validation, cost analysis, and security checks.
-- `src/exec`: Virtual execution engine for static expression evaluation (constant folding).
-- `src/style`: Regex-based pre-processing engine for auto-fixing style violations.
-- `src/plugin`: `wasmtime`-based plugin engine to execute WASI WebAssembly modules.
-- `src/cli`: Command-line interface handling using `clap`.
+```
+bash
+
+pip install omnisql
+```
+**Via VS Code:**
+ Search for OmniSQL in the Extensions Marketplace and click Install.
