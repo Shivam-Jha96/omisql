@@ -7,7 +7,7 @@ import tarfile
 import zipfile
 import shutil
 
-VERSION = os.environ.get("OMNISQL_VERSION", "v0.1.1")
+VERSION = os.environ.get("OMNISQL_VERSION", "v0.1.2")
 REPO = "Shivam-Jha96/omnisql"
 
 def get_platform():

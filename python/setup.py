@@ -16,7 +16,7 @@ class CustomBuildCommand(build_py):
 
 setup(
     name="omnisql",
-    version="0.1.1",
+    version="0.1.2",
     packages=find_packages(),
     cmdclass={
         'build_py': CustomBuildCommand,
