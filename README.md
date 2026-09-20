@@ -1,5 +1,10 @@
-### **🎉 OmniSQL v1.0.0: The Next-Generation SQL Linter**
-We are incredibly excited to announce the official v1.0.0 launch of OmniSQL!
+### **🎉 OmniSQL: The Next-Generation SQL Linter**
+
+[![npm version](https://badge.fury.io/js/omnisql.svg)](https://www.npmjs.com/package/omnisql)
+[![PyPI version](https://badge.fury.io/py/omnisql.svg)](https://pypi.org/project/omnisql/)
+[![VS Marketplace](https://vsmarketplacebadge.apphb.com/version/omnisql.omnisql-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=omnisql.omnisql-vscode)
+
+We are incredibly excited to announce the official launch of OmniSQL!
 
 After extensive development and stabilization, OmniSQL is ready to completely change how data engineers, analysts, and developers write SQL. Built natively in Rust, OmniSQL is not just a style checker—it is a blazingly fast, context-aware semantic engine that actually understands your database schemas, catches security risks, and estimates query costs before they ever reach production.
 ### 
@@ -23,13 +28,13 @@ In cloud data warehouses, a bad query is expensive.
 Need to enforce a company-specific naming convention or business rule? You don't need to learn Rust. Write your custom rules in TypeScript, Python, or Go, compile them to WebAssembly, and run them securely and natively within OmniSQL's core.
 
 **🛠️ Flawless Developer Experience**
-We believe tooling should fade into the background. OmniSQL v1.0.0 ships with:
+We believe tooling should fade into the background. OmniSQL ships with:
 
 **VS Code Extension (omnisql-vscode):** A native Language Server Protocol (LSP) implementation that provides real-time squiggles and diagnostics as you type.
 Auto-Fixer: Run omnisql --fix to instantly resolve style violations (casing, commas, whitespace) across your entire project.
 ### 
 ### **📦 Installation**
-OmniSQL v1.0.0 distributes native binaries seamlessly. You don't need a Rust toolchain to install it—we've built pure, JIT-downloading wrappers for your favorite ecosystems.
+OmniSQL distributes native binaries seamlessly. You don't need a Rust toolchain to install it—we've built pure, JIT-downloading wrappers for your favorite ecosystems.
 
 **Via NPM (JavaScript/TypeScript Ecosystems):**
 

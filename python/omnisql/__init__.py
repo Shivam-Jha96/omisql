@@ -12,6 +12,11 @@ def main():
     
     bin_path = os.path.join(os.path.expanduser("~"), ".omnisql", "bin", VERSION, bin_name)
     
+    args = sys.argv[1:]
+    if "-V" in args or "--version" in args:
+        print(f"omnisql {VERSION.lstrip('v')}")
+        sys.exit(0)
+
     if not os.path.exists(bin_path):
         print(f"OmniSQL {VERSION} binary not found locally. Downloading the correct version for your system...")
         from .install import main as install_main
@@ -25,8 +30,6 @@ def main():
             print(f"OmniSQL binary is still missing at {bin_path} after installation attempt.")
             sys.exit(1)
         
-    args = sys.argv[1:]
-    
     # Run the binary
     try:
         result = subprocess.run([bin_path] + args)
