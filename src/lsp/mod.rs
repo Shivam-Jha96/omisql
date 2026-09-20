@@ -51,8 +51,23 @@ impl Backend {
     async fn on_change(&self, uri: Url, text: String) {
         let mut diagnostics = Vec::new();
         
+        let mut style_engine = crate::style::StyleEngine::new();
+        style_engine.add_rule(Box::new(crate::style::casing::KeywordCasingRule));
+        style_engine.add_rule(Box::new(crate::style::commas::TrailingCommaRule));
+        
+        // Run style engine to get fixes
+        let (_, fixes) = style_engine.format_and_log(&text, "omnisql_fixes.log");
+        
+        let mut debug_log = String::from("--- Runtime Debug Log ---\n");
+        for fix in &fixes {
+            debug_log.push_str(&format!("Linted / FIX APPLIED: {}\n", fix));
+        }
+        debug_log.push_str("-------------------------");
+        
         match parse_sql(&text) {
             Ok(stmt) => {
+                self.client.log_message(MessageType::INFO, debug_log).await;
+
                 let schema_path_guard = self.schema_path.lock().await;
                 if let Some(path) = schema_path_guard.as_ref() {
                     let mut registry = crate::semantic::SchemaRegistry::new();
@@ -154,6 +169,7 @@ impl Backend {
                     message: format!("Parse Error: {}", e.message),
                     ..Default::default()
                 });
+                self.client.log_message(MessageType::ERROR, format!("Parse Error encountered.\n{}", debug_log)).await;
             }
         }
         
