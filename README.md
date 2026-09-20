@@ -46,3 +46,41 @@ pip install omnisql
 ```
 **Via VS Code:**
  Search for OmniSQL in the Extensions Marketplace and click Install.
+
+### **📖 Usage Guide**
+
+#### **Linting Commands**
+You can run OmniSQL from the command line to lint your SQL files:
+
+- **Lint a single file:**
+  ```bash
+  omnisql lint path/to/query.sql
+  ```
+
+- **Lint an entire directory:**
+  ```bash
+  omnisql lint ./sql_queries/
+  ```
+
+- **Auto-fix violations:**
+  ```bash
+  omnisql lint --fix ./sql_queries/
+  ```
+
+- **Lint with a specific configuration file:**
+  ```bash
+  omnisql lint --config path/to/omnisql.yaml ./sql_queries/
+  ```
+
+#### **Upgrading OmniSQL**
+To stay up to date with the latest features, performance improvements, and rule additions, upgrade OmniSQL using your package manager.
+
+- **Via NPM:**
+  ```bash
+  npm update -g omnisql
+  ```
+
+- **Via PyPI:**
+  ```bash
+  pip install --upgrade omnisql
+  ```
