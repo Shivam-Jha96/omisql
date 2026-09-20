@@ -1,4 +1,4 @@
-use sqlparser::dialect::{GenericDialect, PostgreSqlDialect};
+
 use sqlparser::parser::{Parser, ParserError};
 use sqlparser::ast::{self as sqlast, SelectItem, Expr, JoinOperator, TableFactor};
 

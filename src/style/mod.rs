@@ -10,7 +10,7 @@ pub trait StyleRule {
 }
 
 pub struct StyleEngine {
-    rules: Vec<Box<dyn StyleRule>>,
+    rules: Vec<Box<dyn StyleRule + Send + Sync>>,
 }
 
 impl StyleEngine {
@@ -18,11 +18,11 @@ impl StyleEngine {
         Self { rules: Vec::new() }
     }
 
-    pub fn add_rule(&mut self, rule: Box<dyn StyleRule>) {
+    pub fn add_rule(&mut self, rule: Box<dyn StyleRule + Send + Sync>) {
         self.rules.push(rule);
     }
 
-    pub fn format_and_log(&self, sql: &str, log_path: &str) -> String {
+    pub fn format_and_log(&self, sql: &str, log_path: &str) -> (String, Vec<String>) {
         let mut current_sql = sql.to_string();
         let mut all_fixes = Vec::new();
 
@@ -34,12 +34,12 @@ impl StyleEngine {
 
         if !all_fixes.is_empty() {
             if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
-                for fix in all_fixes {
+                for fix in &all_fixes {
                     let _ = writeln!(file, "FIX APPLIED: {}", fix);
                 }
             }
         }
 
-        current_sql
+        (current_sql, all_fixes)
     }
 }

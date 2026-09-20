@@ -7,8 +7,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Lint { path, schema, dbt_manifest, plugin, fix } => {
-            println!("Processing path: {}", path);
+        Commands::Lint { path, schema, dbt_manifest, plugin, fix, verbose } => {
+            if *verbose {
+                println!("Starting linting process for path: {}", path);
+            } else {
+                println!("Processing path: {}", path);
+            }
             
             // Read file content
             let content = fs::read_to_string(path)?;
@@ -19,11 +23,21 @@ fn main() -> Result<()> {
             style_engine.add_rule(Box::new(omnisql::style::commas::TrailingCommaRule));
             
             let log_path = "omnisql_fixes.log";
-            let mut fixed_content = style_engine.format_and_log(&content, log_path);
+            let (mut fixed_content, fixes) = style_engine.format_and_log(&content, log_path);
             fixed_content = omnisql::style::fix::TokenFixer::fix_casing(&fixed_content);
             
+            let print_debug_log = |fixes: &Vec<String>| {
+                println!("--- Runtime Debug Log ---");
+                for fix in fixes {
+                    println!("Linted / FIX APPLIED: {}", fix);
+                }
+                println!("-------------------------");
+            };
+
             if fixed_content != content {
-                println!("Style auto-fixes applied. Check {} for details.", log_path);
+                if *verbose {
+                    println!("Style auto-fixes applied. Check {} for details.", log_path);
+                }
                 if *fix {
                     println!("Applying fixes to source file...");
                     fs::write(path, &fixed_content)?;
@@ -35,9 +49,15 @@ fn main() -> Result<()> {
                 Ok(stmt) => stmt,
                 Err(e) => {
                     println!("Parse Error: {}", e.message);
+                    println!("Failed at parsing. Displaying runtime debug log:");
+                    print_debug_log(&fixes);
                     return Ok(());
                 }
             };
+            
+            if *verbose {
+                print_debug_log(&fixes);
+            }
             println!("Parsing successful.");
 
             // 2.5. Plugin Engine

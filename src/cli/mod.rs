@@ -30,6 +30,10 @@ pub enum Commands {
         /// Automatically fix style issues
         #[arg(long)]
         fix: bool,
+
+        /// Show detailed runtime debug output
+        #[arg(short, long)]
+        verbose: bool,
     },
     /// Start the Language Server Protocol (LSP) server
     Lsp {
