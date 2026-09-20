@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "omnisql"
-version = "1.0.3"
+version = "1.0.5"
 description = "Blazing-fast, next-generation SQL linter"
 authors = [
     { name = "OmniSQL Contributors", email = "hello@omnisql.dev" }

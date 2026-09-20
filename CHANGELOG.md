@@ -2,11 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Release 1.0.4
+## Release 1.0.5
 
 *Date: 2026-09-20*
 
-OmniSQL 1.0.4 introduces dynamic versioning for our NPM and PyPI wrappers, live-updating repository badges, and a new verbose runtime logging system for the CLI.
+OmniSQL 1.0.5 introduces dynamic versioning for our NPM and PyPI wrappers, live-updating repository badges, and a new verbose runtime logging system for the CLI.
 
 ### 🚀 Features
 - **Verbose Runtime Logs**: Implemented detailed runtime debug logs directly in the CLI engine. Users can now opt-in for deeper insights during linting.
