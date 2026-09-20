@@ -77,6 +77,16 @@ You can run OmniSQL from the command line to lint your SQL files:
   omnisql lint --config path/to/omnisql.yaml ./sql_queries/
   ```
 
+- **Lint with a DDL schema (for semantic validation):**
+  ```bash
+  omnisql lint --schema path/to/schema.sql ./sql_queries/
+  ```
+
+- **Lint with a dbt manifest (for native dbt project validation):**
+  ```bash
+  omnisql lint --dbt-manifest target/manifest.json ./sql_queries/
+  ```
+
 #### **Upgrading OmniSQL**
 To stay up to date with the latest features, performance improvements, and rule additions, upgrade OmniSQL using your package manager.
 

@@ -65,6 +65,16 @@ While this extension provides real-time linting in the editor, you can also run 
   omnisql lint --config path/to/omnisql.yaml ./sql_queries/
   ```
 
+- **Lint with a DDL schema (for semantic validation):**
+  ```bash
+  omnisql lint --schema path/to/schema.sql ./sql_queries/
+  ```
+
+- **Lint with a dbt manifest (for native dbt project validation):**
+  ```bash
+  omnisql lint --dbt-manifest target/manifest.json ./sql_queries/
+  ```
+
 ### Upgrading OmniSQL
 
 To stay up to date with the latest features, performance improvements, and rule additions, you should keep the underlying `omnisql` CLI up to date:
