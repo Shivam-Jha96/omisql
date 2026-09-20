@@ -6,7 +6,8 @@ const https = require('https');
 
 // Config
 const REPO = 'Shivam-Jha96/omnisql';
-const VERSION = process.env.OMNISQL_VERSION || 'v1.0.3';
+const pkgVersion = require('./package.json').version;
+const VERSION = process.env.OMNISQL_VERSION || `v${pkgVersion}`;
 const BIN_NAME = os.platform() === 'win32' ? 'omnisql.exe' : 'omnisql';
 
 // Map Node.js os/arch to GitHub Release asset names

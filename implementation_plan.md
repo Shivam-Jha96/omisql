@@ -397,3 +397,22 @@ This phase focused on improving the documentation across all package distributio
 
 #### 3. VS Code Extension README Update
 - **[MODIFY] `vscode-extension/README.md`**: Added the CLI Usage Guide to the extension marketplace details page to inform users how to run OmniSQL outside of the editor environment, alongside upgrade instructions.
+
+---
+
+## 20. Current Objective: Phase 13 (Dynamic Wrapper Versions) [COMPLETED]
+
+This phase resolved a caching bug where the wrappers (NPM and PyPI) would download older versions of the pre-compiled binary or show outdated versions when running `omnisql -V`, by switching to fully dynamic version resolution based on package metadata.
+
+### Implemented Changes
+
+#### 1. Dynamic Installer Resolution
+- **[MODIFY] `npm/install.js`**: Removed the hardcoded version string and configured the installer to dynamically read the target version from `package.json`.
+- **[MODIFY] `python/omnisql/install.py`**: Removed the hardcoded version string and leveraged Python's `importlib.metadata` to automatically resolve the installed PyPI package version.
+
+#### 2. Instant Version Reporting (CLI Interception)
+- **[MODIFY] `npm/index.js`**: Added interception logic for the `-V` and `--version` flags to instantaneously print the `package.json` version without spawning the underlying Rust binary.
+- **[MODIFY] `python/omnisql/__init__.py`**: Added interception logic for the `-V` and `--version` flags to instantaneously print the dynamic package version without triggering a binary download or execution.
+
+#### 3. Dynamic README Badges
+- **[MODIFY] `README.md`**: Removed static `v1.0.0` strings across the document and added dynamic live-updating version badges for NPM, PyPI, and the VS Code Marketplace.
