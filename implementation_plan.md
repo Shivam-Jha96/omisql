@@ -359,3 +359,25 @@ This phase resolved critical deployment bugs and refactored wrapper architecture
   - Upgraded node versions in GitHub Actions from `18.x` to `20.x` to resolve a known bug with `vsce publish` and `undici`.
   - Fixed a critical `actions/download-artifact@v4` glob resolution bug by defining explicit patterns and using recursive `artifacts/**` for `action-gh-release`.
 - **[NEW] LICENSE**: Added a standard MIT License to the repository root to prevent interactive prompt hangs during automated CI/CD builds.
+
+---
+
+## 18. Current Objective: Phase 11 (Runtime Debug Logs & Repository Cleanup) [COMPLETED]
+
+This phase introduced detailed runtime debug logs directly to the user (via CLI and the VS Code Output panel) and strictly sanitized the root repository.
+
+### Implemented Changes
+
+#### 1. Runtime Debug Logs & Verbose Flag
+- **[MODIFY] `src/cli/mod.rs`**: Added a `--verbose` flag to the `lint` command to allow users to opt into runtime logs.
+- **[MODIFY] `src/style/mod.rs`**: Upgraded `format_and_log` to return a `Vec<String>` of applied stylistic fixes alongside the modified SQL. Also strictly enforced `Send + Sync` bounds for the `StyleRule` trait to ensure thread safety across the LSP async executor.
+- **[MODIFY] `src/main.rs`**: Modified the core CLI engine to print the `--- Runtime Debug Log ---` when `--verbose` is passed, or automatically when a hard parse error occurs, preventing users from needing to manually check hidden `.log` files.
+
+#### 2. LSP Integration
+- **[MODIFY] `src/lsp/mod.rs`**: Integrated the `StyleEngine` directly into the LSP's `on_change` event stream. It now pipes the active debug logs directly to the VS Code client via `window/logMessage` as an `INFO` stream, and attaches them to `ERROR` payloads if a parsing failure occurs.
+
+#### 3. Repository Cleanup & Ignored Artifacts
+- **[MODIFY] `src/parser/mod.rs`**: Removed completely unused and redundant SQL dialect imports.
+- **[MODIFY] `.gitignore`**: Re-encoded the garbled trailing lines, properly ignored multiple temporary `target*/` directories, and added rules for `lsp_debug.log` and scratch `tests*.rs` files to keep source control clean.
+- **[DELETE] `package.json` & `package-lock.json`**: Purged empty NPM manifests that were accidentally tracked in the repository root.
+- **[MODIFY] `sample.sql`**: Relocated the root-level scratch demo file into the `examples/sample.sql` directory.
