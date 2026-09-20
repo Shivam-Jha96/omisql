@@ -379,5 +379,21 @@ This phase introduced detailed runtime debug logs directly to the user (via CLI 
 #### 3. Repository Cleanup & Ignored Artifacts
 - **[MODIFY] `src/parser/mod.rs`**: Removed completely unused and redundant SQL dialect imports.
 - **[MODIFY] `.gitignore`**: Re-encoded the garbled trailing lines, properly ignored multiple temporary `target*/` directories, and added rules for `lsp_debug.log` and scratch `tests*.rs` files to keep source control clean.
-- **[DELETE] `package.json` & `package-lock.json`**: Purged empty NPM manifests that were accidentally tracked in the repository root.
 - **[MODIFY] `sample.sql`**: Relocated the root-level scratch demo file into the `examples/sample.sql` directory.
+
+---
+
+## 19. Current Objective: Phase 12 (Usage Guides & Documentation) [COMPLETED]
+
+This phase focused on improving the documentation across all package distributions by adding explicit usage guides and upgrade commands for the CLI and extensions.
+
+### Implemented Changes
+
+#### 1. NPM and General README Update
+- **[MODIFY] `README.md`**: Added a new Usage Guide section detailing single-file linting, directory linting, auto-fix, and configuration flags. Added upgrade commands for NPM and PyPI.
+
+#### 2. PyPI Package README Update
+- **[MODIFY] `python/README.md`**: Added the new Usage Guide section and PyPI-specific upgrade instructions for users operating within Python/dbt ecosystems.
+
+#### 3. VS Code Extension README Update
+- **[MODIFY] `vscode-extension/README.md`**: Added the CLI Usage Guide to the extension marketplace details page to inform users how to run OmniSQL outside of the editor environment, alongside upgrade instructions.

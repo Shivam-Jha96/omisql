@@ -39,6 +39,46 @@ To enable advanced semantic rules, you should provide a schema to OmniSQL. You c
 
 *(Note: Currently, schema paths should be configured in the global `omnisql` config or run via CLI. Workspace integration for schemas will be expanded in future releases).*
 
+## Usage Guide (CLI)
+
+While this extension provides real-time linting in the editor, you can also run OmniSQL from the command line for CI/CD or bulk operations:
+
+### Linting Commands
+
+- **Lint a single file:**
+  ```bash
+  omnisql lint path/to/query.sql
+  ```
+
+- **Lint an entire directory:**
+  ```bash
+  omnisql lint ./sql_queries/
+  ```
+
+- **Auto-fix violations:**
+  ```bash
+  omnisql lint --fix ./sql_queries/
+  ```
+
+- **Lint with a specific configuration file:**
+  ```bash
+  omnisql lint --config path/to/omnisql.yaml ./sql_queries/
+  ```
+
+### Upgrading OmniSQL
+
+To stay up to date with the latest features, performance improvements, and rule additions, you should keep the underlying `omnisql` CLI up to date:
+
+- **Via NPM:**
+  ```bash
+  npm update -g omnisql
+  ```
+
+- **Via PyPI:**
+  ```bash
+  pip install --upgrade omnisql
+  ```
+
 ## License
 
 MIT License.
