@@ -7,6 +7,6 @@ from setuptools.command.build_py import build_py
 
 setup(
     name="omnisql",
-    version="1.0.3",
+    version="1.0.4",
     packages=find_packages(),
 )
