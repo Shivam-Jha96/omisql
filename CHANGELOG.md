@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+# Release 1.0.6
+
+*Date: 2026-09-20*
+
+OmniSQL 1.0.6 introduces critical documentation enhancements for our auto-fix engine and schema integrations, ensuring users understand the current boundaries of the semantic checking engine.
+
+## 📝 Documentation
+- **Schema & dbt Manifest Examples**: Added explicit command-line examples across all READMEs demonstrating how to lint SQL files using local DDL schemas (`--schema`) or dbt configurations (`--dbt-manifest`).
+- **Auto-Fix Disclaimer**: Added explicit `--fix` examples alongside schema validation, supplemented with an important disclaimer clarifying that OmniSQL's auto-fix engine currently handles *stylistic* violations (casing, commas) but does *not* automatically modify semantic or security errors.
+
+## 🛠️ Maintenance & Chores
+- **Version Bumps**: Incremented versions to `1.0.6` across `Cargo.toml`, Node environments, and PyPI scripts to trigger a fresh CI/CD rollout.
+
+---
+*Thank you to everyone who contributed to this release!*
+
 ## Release 1.0.5
 
 *Date: 2026-09-20*
