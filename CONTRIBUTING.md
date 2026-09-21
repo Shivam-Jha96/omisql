@@ -13,7 +13,8 @@ All application logic, features, and source code must go inside the `src/` direc
 - **Submodules (e.g., `cli/`, `exec/`, `lexer/`, `parser/`, `semantic/`, `style/`)**: Group related functionalities into their own directories. If you are adding a completely new subsystem, create a new directory here and expose it via `mod` in `lib.rs`.
 
 ### 2. `docs/` (Documentation & Planning)
-All project documentation, design plans, and progress trackers belong here.
+All internal project documentation, design plans, and progress trackers belong here.
+- **IMPORTANT**: The `docs/` folder is added to `.gitignore`. Do not push these files to the remote repository. They are for local development planning only.
 - Add architectural notes, implementation plans, and meeting notes into this folder.
 - Use Markdown (`.md`) format.
 
