@@ -7,7 +7,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Lint { path, schema, dbt_manifest, plugin, fix, verbose } => {
+        Commands::Lint { path, schema, dbt_manifest, plugin, fix, verbose, dialect } => {
             if *verbose {
                 println!("Starting linting process for path: {}", path);
             } else {
@@ -45,7 +45,7 @@ fn main() -> Result<()> {
             }
             
             // 1. & 2. Lexer and Parser
-            let stmt = match omnisql::parser::parse_sql(&fixed_content) {
+            let stmt = match omnisql::parser::parse_sql(&fixed_content, dialect) {
                 Ok(stmt) => stmt,
                 Err(e) => {
                     println!("Parse Error: {}", e.message);
@@ -122,7 +122,7 @@ fn main() -> Result<()> {
                     }
                     
                     for col in &ast.columns {
-                        if col.name == "*" {
+                        if col.name == "*" || col.name == "function_or_expr" {
                             continue;
                         }
                         
@@ -219,7 +219,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Lsp { schema } => {
+        Commands::Lsp { schema, dialect } => {
             let mut schema = schema.clone();
             eprintln!("Starting LSP server...");
             if schema.is_none() {

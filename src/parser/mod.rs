@@ -65,9 +65,44 @@ pub struct ParseError {
     pub col: usize,
 }
 
-pub fn parse_sql(sql: &str) -> Result<Statement, ParseError> {
-    let dialect = sqlparser::dialect::PostgreSqlDialect {};
-    let ast_list = match Parser::parse_sql(&dialect, sql) {
+use std::sync::OnceLock;
+use regex::Regex;
+
+static OWNER_RE: OnceLock<Regex> = OnceLock::new();
+static COPY_RE: OnceLock<Regex> = OnceLock::new();
+static UNSUPPORTED_RE: OnceLock<Regex> = OnceLock::new();
+
+pub fn preprocess_sql(sql: &str) -> String {
+    let owner_re = OWNER_RE.get_or_init(|| Regex::new(r"(?i)ALTER\s+[a-z_]+\s+[^;]*?OWNER\s+TO\s+[^;]*?;").unwrap());
+    let copy_re = COPY_RE.get_or_init(|| Regex::new(r"(?i)COPY\s+[\s\S]*?\s+FROM\s+stdin.*?;[\s\S]*?\n\\\.").unwrap());
+    let unsupported_re = UNSUPPORTED_RE.get_or_init(|| Regex::new(r"(?i)CREATE\s+(?:SEQUENCE|AGGREGATE|TRIGGER|DOMAIN|TYPE)\s+[^;]*?;").unwrap());
+
+    let sql_owner = owner_re.replace_all(sql, |caps: &regex::Captures| {
+        let num_newlines = caps[0].matches('\n').count();
+        "\n".repeat(num_newlines)
+    });
+    
+    let sql_copy = copy_re.replace_all(&sql_owner, |caps: &regex::Captures| {
+        let num_newlines = caps[0].matches('\n').count();
+        "\n".repeat(num_newlines)
+    });
+
+    let sql_unsupported = unsupported_re.replace_all(&sql_copy, |caps: &regex::Captures| {
+        let num_newlines = caps[0].matches('\n').count();
+        "\n".repeat(num_newlines)
+    });
+
+    sql_unsupported.into_owned()
+}
+
+pub fn parse_sql(sql: &str, dialect_name: &str) -> Result<Statement, ParseError> {
+    let dialect: Box<dyn sqlparser::dialect::Dialect> = match dialect_name.to_lowercase().as_str() {
+        "snowflake" => Box::new(sqlparser::dialect::SnowflakeDialect {}),
+        "generic" => Box::new(sqlparser::dialect::GenericDialect {}),
+        _ => Box::new(sqlparser::dialect::PostgreSqlDialect {}),
+    };
+    let preprocessed = preprocess_sql(sql);
+    let ast_list = match Parser::parse_sql(dialect.as_ref(), &preprocessed) {
         Ok(ast) => ast,
         Err(e) => {
             let mut line = 1;

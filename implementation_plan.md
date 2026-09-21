@@ -416,3 +416,23 @@ This phase resolved a caching bug where the wrappers (NPM and PyPI) would downlo
 
 #### 3. Dynamic README Badges
 - **[MODIFY] `README.md`**: Removed static `v1.0.0` strings across the document and added dynamic live-updating version badges for NPM, PyPI, and the VS Code Marketplace.
+
+---
+
+## 21. Current Objective: Phase 14 (Regex Pre-processor & Snowflake Support) [COMPLETED]
+
+This phase improved parsing reliability by implementing a regex-based pre-processor to strip unparseable DDL statements, and added native CLI support for the Snowflake SQL dialect.
+
+### Implemented Changes
+
+#### 1. Regex Pre-processor (DDL Stripping)
+- **[MODIFY] src/parser/mod.rs**: Added a robust regex pre-processor (preprocess_sql) to intercept and strip out raw data blocks (COPY ... FROM stdin;) and unparseable PostgreSQL DDLs (ALTER ... OWNER TO, CREATE SEQUENCE, CREATE AGGREGATE, etc.) before passing the AST to sqlparser-rs. This ensures line numbers are preserved by replacing the stripped content with exact newlines.
+
+#### 2. Snowflake Dialect CLI Support
+- **[MODIFY] src/cli/mod.rs**: Added a --dialect parameter to the lint and lsp commands to let users explicitly set the SQL dialect (e.g., --dialect snowflake).
+- **[MODIFY] src/main.rs**: Wired the new CLI dialect argument through to the core parser engine, and added logic to ignore arbitrary unction_or_expr columns during semantic validation to support complex JSON path traversal syntax (payload:device::string).
+- **[MODIFY] src/lsp/mod.rs**: Plumbed a fallback "postgres" dialect for the LSP parser invocation.
+
+#### 3. Test Suites & Benchmarks
+- **[NEW] test_dbs/snowflake_tests/**: Created an isolated test suite containing schema.sql, 	est_variant.sql, and 	est_pii.sql to validate the Snowflake dialect parser and semantic engine.
+- **[MODIFY] README.md**: Updated the usage documentation to showcase the new --dialect snowflake flag.
