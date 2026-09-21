@@ -95,6 +95,12 @@ You can run OmniSQL from the command line to lint your SQL files:
   omnisql lint --fix --dbt-manifest target/manifest.json ./sql_queries/
   ```
 
+- **Lint with a specific SQL dialect (e.g., Snowflake):**
+  OmniSQL defaults to PostgreSQL. If you are parsing Snowflake-specific syntax (like VARIANT JSON paths or QUALIFY clauses), switch the dialect:
+  ```bash
+  omnisql lint --dialect snowflake ./sql_queries/
+  ```
+
 > **⚠️ Disclaimer regarding Auto-Fix (`--fix`)**:
 > OmniSQL's auto-fix engine currently only resolves **stylistic violations** (such as SQL keyword casing and trailing commas). It will *not* automatically repair semantic, cost, or security errors (e.g., it will not auto-generate missing JOIN conditions or automatically mask PII columns).
 

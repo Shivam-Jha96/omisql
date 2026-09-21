@@ -64,7 +64,7 @@ impl Backend {
         }
         debug_log.push_str("-------------------------");
         
-        match parse_sql(&text) {
+        match parse_sql(&text, "postgres") {
             Ok(stmt) => {
                 self.client.log_message(MessageType::INFO, debug_log).await;
 

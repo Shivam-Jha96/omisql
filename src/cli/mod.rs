@@ -34,11 +34,19 @@ pub enum Commands {
         /// Show detailed runtime debug output
         #[arg(short, long)]
         verbose: bool,
+        
+        /// SQL Dialect to use (postgres, snowflake, generic)
+        #[arg(long, default_value = "postgres")]
+        dialect: String,
     },
     /// Start the Language Server Protocol (LSP) server
     Lsp {
         /// Optional path to a DDL schema file
         #[arg(short, long)]
         schema: Option<String>,
+        
+        /// SQL Dialect to use (postgres, snowflake, generic)
+        #[arg(long, default_value = "postgres")]
+        dialect: String,
     },
 }
