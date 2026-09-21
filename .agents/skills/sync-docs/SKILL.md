@@ -15,12 +15,12 @@ This skill provides the standard operating procedure for updating the project's 
    - Review the specific code files that were updated to confirm what features were implemented.
 
 2. **Locate the Documentation**:
-   - Primarily, look for `implementation_plan.md` in the repository root.
-   - Look for other relevant docs in the `docs/` folder.
+   - Look for the implementation plan at `docs/implementation_plan.md`. Note that the entire `docs/` folder is untracked and in `.gitignore`, so it will not show up in `git status`.
+   - Look for release notes in the `release_notes/` folder.
 
 3. **Update the Documentation**:
-   - Add a summary of the completed work. If a specific phase (e.g., Phase 6, Phase 7) was completed, mark it as `[COMPLETED]` in the document headers.
-   - List the newly created `[NEW]` and modified `[MODIFY]` files and explain what was changed in them.
+   - **Implementation Plan**: Add a summary of the completed work. If a specific phase (e.g., Phase 6, Phase 7) was completed, mark it as `[COMPLETED]` in the document headers. List the newly created `[NEW]` and modified `[MODIFY]` files and explain what was changed in them.
+   - **Release Notes**: If a feature warrants it, draft or update the corresponding version's release notes in the `release_notes/` folder (e.g., `release_notes/1.1.md`) with the new features, bug fixes, or documentation updates.
    - Be extremely careful with text encodings and Markdown formatting when updating files programmatically. Ensure no data is accidentally truncated or corrupted.
 
 4. **Commit and Push**:

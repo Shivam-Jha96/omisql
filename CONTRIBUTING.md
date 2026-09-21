@@ -32,6 +32,11 @@ These directories are strictly for generated output and are ignored by `.gitigno
 ### 5. `test_dbs/` (Test Databases)
 Stores SQLite/OmniSQL test database files. Do not commit these files unless they are explicitly meant to act as seeded fixtures for test suites.
 
+### 6. `release_notes/` (Release History)
+Contains individual markdown (`.md`) files for each released version's changelog. 
+- Name the files by version number (e.g., `1.1.md`).
+- These files **are** committed to version control and act as the historical changelog for the project.
+
 ## Adding New File Types
 If you introduce a entirely new type of file or workflow (e.g., Dockerfiles, CI/CD pipelines, or benchmark reports):
 1. Evaluate if it fits into an existing folder.
