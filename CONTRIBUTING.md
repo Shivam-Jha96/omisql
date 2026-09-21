@@ -13,7 +13,8 @@ All application logic, features, and source code must go inside the `src/` direc
 - **Submodules (e.g., `cli/`, `exec/`, `lexer/`, `parser/`, `semantic/`, `style/`)**: Group related functionalities into their own directories. If you are adding a completely new subsystem, create a new directory here and expose it via `mod` in `lib.rs`.
 
 ### 2. `docs/` (Documentation & Planning)
-All project documentation, design plans, and progress trackers belong here.
+All internal project documentation, design plans, and progress trackers belong here.
+- **IMPORTANT**: The `docs/` folder is added to `.gitignore`. Do not push these files to the remote repository. They are for local development planning only.
 - Add architectural notes, implementation plans, and meeting notes into this folder.
 - Use Markdown (`.md`) format.
 
@@ -30,6 +31,11 @@ These directories are strictly for generated output and are ignored by `.gitigno
 
 ### 5. `test_dbs/` (Test Databases)
 Stores SQLite/OmniSQL test database files. Do not commit these files unless they are explicitly meant to act as seeded fixtures for test suites.
+
+### 6. `release_notes/` (Release History)
+Contains individual markdown (`.md`) files for each released version's changelog. 
+- Name the files by version number (e.g., `1.1.md`).
+- These files **are** committed to version control and act as the historical changelog for the project.
 
 ## Adding New File Types
 If you introduce a entirely new type of file or workflow (e.g., Dockerfiles, CI/CD pipelines, or benchmark reports):

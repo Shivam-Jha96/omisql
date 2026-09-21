@@ -5,3 +5,4 @@ pub mod style;
 pub mod exec;
 pub mod plugin;
 pub mod lsp;
+pub mod stream;
